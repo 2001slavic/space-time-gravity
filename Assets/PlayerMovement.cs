@@ -24,7 +24,7 @@ public class PlayerMovement : MonoBehaviour
     public float groundCheckDistance = 2f;
     public float gravityPanelCheckDistance = 1.9f;
     public float jumpHeight = 10;
-    public float ceilCheckHeight = 10;
+    public float ceilCheckHeight = 1.89f;
     public Vector3 groundNormal;
     public float curGravity = 0;
 
@@ -45,11 +45,13 @@ public class PlayerMovement : MonoBehaviour
             curJump = 0;
             groundNormal = gravityPanelHit.normal;
             lastOnGravityPanel = true;
-        } else
+        }
+        else
         {
             if (lastOnGravityPanel)
             {
                 groundNormal = groundHit.normal;
+                controller.Move(groundNormal);
             }
             lastOnGravityPanel = false;
         }
