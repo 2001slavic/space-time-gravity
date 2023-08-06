@@ -2,37 +2,45 @@ using JetBrains.Annotations;
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Net.Http.Headers;
 using System.Runtime.CompilerServices;
 using Unity.VisualScripting;
 using UnityEngine;
 
 public class PlayerMovement : MonoBehaviour
 {
-    private float curJump = 0;
+    private float curJump;
     private RaycastHit groundHit;
     private RaycastHit gravityPanelHit;
 
+    private readonly float refSpeed = 12;
+    private readonly float refMaxFallVelocity = 100;
+    private readonly float refGroundCheckDistance = 1.16f;
+    private readonly float refGravityPanelCheckDistance = 1.106f;
+    private readonly float refJumpHeight = 10;
+    private readonly float refCeilCheckHeight = 2.6f;
+
     public bool lastOnGravityPanel;
-    public bool isJumping;
     public bool isWalking;
     public bool isRunning;
     public bool isFalling;
 
+    public SizeControl sizeControl;
     public CharacterController controller;
-    public float playerSpeed = 12;
-    public float playerGravityScale = 9.81f;
+    public float playerSpeed;
+    public float playerGravityScale;
     public Transform groundCheck;
     public LayerMask groundMask;
     public LayerMask gravityPanelMask;
-    public float playerMaxFallVelocity = 100;
+    public float playerMaxFallVelocity;
     public bool isGrounded;
     public bool onGravityPanel;
-    public float groundCheckDistance = 1.16f;
-    public float gravityPanelCheckDistance = 1.106f;
-    public float jumpHeight = 10;
-    public float ceilCheckHeight = 2.6f;
+    public float groundCheckDistance;
+    public float gravityPanelCheckDistance;
+    public float jumpHeight;
+    public float ceilCheckHeight;
     public Vector3 groundNormal;
-    public float curGravity = 0;
+    public float curGravity;
     public Vector2 normalizedInput;
     public Vector2 clampedInput;
 
@@ -52,37 +60,68 @@ public class PlayerMovement : MonoBehaviour
             { "Run Forwards Left"   , 9  },
             { "Run Forwards"        , 10 },
             { "Run Forwards Right"  , 11 },
-            { "Jump"                , 12 },
-            { "Falling"             , 13 },
-            { "Land"                , 14 }
+            { "Falling"             , 13 }
         };
 
-    private void Start()
+    void Start()
     {
+        playerSpeed = refSpeed;
+        playerMaxFallVelocity = refMaxFallVelocity;
+        groundCheckDistance = refGroundCheckDistance;
+        gravityPanelCheckDistance = refGravityPanelCheckDistance;
+        jumpHeight = refJumpHeight;
+        ceilCheckHeight = refCeilCheckHeight;
+
+
+        playerGravityScale = 9.81f;
+        curGravity = 0;
+        curJump = 0;
+
         groundNormal = new Vector3(0, 1, 0);
         lastOnGravityPanel = false;
         normalizedInput = new Vector2(0, 0);
         clampedInput = new Vector2(0, 0);
         animator = GetComponent<Animator>();
         isRunning = false;
-        isJumping = false;
         isWalking = false;
         isFalling = false;
+        
     }
 
     void Update()
     {
+        switch (sizeControl.curSize)
+        {
+            case 0:
+                playerSpeed = refSpeed / 2;
+                playerMaxFallVelocity = refMaxFallVelocity / 2;
+                groundCheckDistance = refGroundCheckDistance / 2;
+                gravityPanelCheckDistance = refGravityPanelCheckDistance / 2;
+                //jumpHeight = refJumpHeight / 2;
+                ceilCheckHeight = refCeilCheckHeight / 2;
+                break;
+            case 1:
+                playerSpeed = refSpeed;
+                playerMaxFallVelocity = refMaxFallVelocity;
+                groundCheckDistance = refGroundCheckDistance;
+                gravityPanelCheckDistance = refGravityPanelCheckDistance;
+                jumpHeight = refJumpHeight;
+                ceilCheckHeight = refCeilCheckHeight;
+                break;
+            case 2:
+                playerSpeed = refSpeed * 1.5f;
+                playerMaxFallVelocity = refMaxFallVelocity * 2;
+                groundCheckDistance = refGroundCheckDistance * 2;
+                gravityPanelCheckDistance = refGravityPanelCheckDistance * 2;
+                //jumpHeight = refJumpHeight * 2;
+                ceilCheckHeight = refCeilCheckHeight * 2;
+                break;
+        }
 
         isGrounded = Physics.Raycast(groundCheck.position, -groundNormal, out groundHit, groundCheckDistance, groundMask);
         if (isGrounded)
         {
             curGravity = 0;
-            if (isFalling || isJumping)
-            {
-                isJumping = false;
-                isFalling = false;
-                animator.SetInteger("currentState", animStates["Land"]);
-            }
         }
 
         onGravityPanel = Physics.Raycast(groundCheck.position, -groundNormal, out gravityPanelHit, gravityPanelCheckDistance, gravityPanelMask);
@@ -92,12 +131,6 @@ public class PlayerMovement : MonoBehaviour
             curJump = 0;
             groundNormal = gravityPanelHit.normal;
             lastOnGravityPanel = true;
-            if (isFalling || isJumping)
-            {
-                isJumping = false;
-                isFalling = false;
-                animator.SetInteger("currentState", animStates["Land"]);
-            }
         }
         else
         {
@@ -107,6 +140,11 @@ public class PlayerMovement : MonoBehaviour
                 controller.Move(groundNormal);
             }
             lastOnGravityPanel = false;
+        }
+
+        if (sizeControl.sizeChanged && (isGrounded || onGravityPanel))
+        {
+            controller.Move(groundNormal * 2);
         }
 
         // gravity
@@ -128,9 +166,13 @@ public class PlayerMovement : MonoBehaviour
             if (Input.GetButton("Jump"))
             {
                 curJump = jumpHeight;
-                isJumping = true;
             }
         }
+
+        isFalling = false;
+
+        if (curGravity > 0)
+            isFalling = true;
 
         if (curGravity < playerMaxFallVelocity)
         {
@@ -163,12 +205,7 @@ public class PlayerMovement : MonoBehaviour
         else if (clampedInput.magnitude > 0.5)
             isRunning = true;
 
-
-        if (isJumping)
-        {
-            animator.SetInteger("currentState", animStates["Jump"]);
-        }
-        else if (!isGrounded && !onGravityPanel && !isJumping)
+        if (isFalling)
             animator.SetInteger("currentState", animStates["Falling"]);
         else if (isWalking)
         {
@@ -197,6 +234,10 @@ public class PlayerMovement : MonoBehaviour
                 animator.SetInteger("currentState", animStates["Run Forwards Right"]);
             else if (normalizedInput.y > 0.35 && normalizedInput.y < 0.85 && normalizedInput.x < 0)
                 animator.SetInteger("currentState", animStates["Run Forwards Left"]);
+            else if (normalizedInput.y > -0.35 && normalizedInput.y <= 0.35 && normalizedInput.x < 0)
+                animator.SetInteger("currentState", animStates["Strafe Left"]);
+            else if (normalizedInput.y < 0.35 && normalizedInput.y >= -0.35 && normalizedInput.x > 0)
+                animator.SetInteger("currentState", animStates["Strafe Right"]);
         }
         else
             animator.SetInteger("currentState", animStates["Idle"]);
@@ -207,7 +248,6 @@ public class PlayerMovement : MonoBehaviour
         else
         {
             controller.Move(0.5f * playerSpeed * Time.deltaTime * move);
-            isJumping = false;
         }
             
     }
