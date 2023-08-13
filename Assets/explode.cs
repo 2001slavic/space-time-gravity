@@ -16,7 +16,7 @@ public class explode : MonoBehaviour
     {
         if (Input.GetKeyDown(KeyCode.X))
         {
-            rb.AddForce(new Vector3(Random.value, Random.value, Random.value) * 500);
+            rb.AddForce(new Vector3(Random.value, Random.value, Random.value) * 10, ForceMode.VelocityChange);
         }
     }
 }
