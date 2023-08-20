@@ -4,53 +4,47 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Net.Http.Headers;
 using System.Runtime.CompilerServices;
+using TMPro;
 using Unity.VisualScripting;
 using UnityEditor;
 using UnityEngine;
 
 public class PlayerMovement : MonoBehaviour
 {
-    private float curJump;
+
+    public bool developerMode;
+    public float devModeSpeed = 10;
+
     private RaycastHit groundHit;
-    private RaycastHit gravityPanelHit;
-    private Vector3 move;
 
     private readonly float refSpeed = 12;
-    private readonly float refMaxFallVelocity = 100;
-    private readonly float refGroundCheckDistance = 1.16f;
-    private readonly float refGravityPanelCheckDistance = 1.106f;
-    private readonly float refJumpHeight = 10;
-    private readonly float refCeilCheckHeight = 2.6f;
+    private readonly float refStepOffset = 0.6f;
+    public float refMass = 1;
+    public float refJumpForce = 10;
+    public float archimedesForceScale = 10;
+    public float swimUpScale = 10;
 
     public bool lastOnGravityPanel;
     public bool isWalking;
     public bool isRunning;
     public bool isFalling;
+    public bool inWater;
 
     public Rigidbody rb;
     public CapsuleCollider collider;
     public SizeControl sizeControl;
+    public Camera playerCamera;
+    public LayerMask clipCheckIgnore;
     public float playerSpeed;
-    public float playerGravityScale;
-    public Transform groundCheck;
-    public LayerMask groundMask;
-    public LayerMask gravityPanelMask;
-    public float playerMaxFallVelocity;
+    private float playerGravityScale;
     public bool isGrounded;
     public bool onGravityPanel;
-    public float groundCheckDistance;
-    public float gravityPanelCheckDistance;
-    public float jumpHeight;
-    public float ceilCheckHeight;
     public Vector3 groundNormal;
-    public float curGravity;
     public Vector3 input;
-    public Vector3 normalizedInput;
-    public Vector3 clampedInput;
     public Animator animator;
-    public Transform groundCast;
-
-    private int gravityPanelsEntered;
+    public float stepOffset;
+    public float mass;
+    public float jumpForce;
 
     private readonly Dictionary<string, int> animStates = new()
     {
@@ -69,142 +63,133 @@ public class PlayerMovement : MonoBehaviour
             { "Falling"             , 13 }
         };
 
-
-    //private void OnCollisionStay(Collision collision)
-    //{
-    //    if (lastOnGravityPanel)
-    //    {
-    //        Debug.Log("last");
-    //        groundNormal = collision.contacts[0].normal;
-    //        transform.rotation = Quaternion.FromToRotation(transform.up, groundNormal) * transform.rotation;
-    //        onGravityPanel = false;
-    //        lastOnGravityPanel = false;
-    //    }
-
-    //    if (collision.collider.gameObject.layer == LayerMask.NameToLayer("Gravity Panel"))
-    //    {
-    //        groundNormal = collision.contacts[0].normal;
-    //        transform.rotation = Quaternion.FromToRotation(transform.up, groundNormal) * transform.rotation;
-    //    }
-    //}
-    //private void OnCollisionEnter(Collision collision)
-    //{
-    //    if (collision.collider.gameObject.layer == LayerMask.NameToLayer("Gravity Panel"))
-    //    {
-    //        onGravityPanel = true;
-    //        gravityPanelsEntered++;
-    //    }
-    //}
-
-    //private void OnCollisionExit(Collision collision)
-    //{
-    //    if (collision == groundCollision)
-    //    {
-    //        groundCollision = null;
-    //        isGrounded = false;
-    //    }
-
-    //    if (collision.collider.gameObject.layer == LayerMask.NameToLayer("Gravity Panel"))
-    //    {
-    //        gravityPanelsEntered--;
-    //        if (gravityPanelsEntered == 0)
-    //        {
-    //            lastOnGravityPanel = true;
-    //        }
-    //    }
-    //}
-
-    private void OnDrawGizmosSelected()
+    private void OnTriggerEnter(Collider other)
     {
-        //Gizmos.DrawSphere(collider.transform.position + collider.center + new Vector3(0, collider.radius - (collider.height / 2) + 0.1f, 0), collider.radius); // jos
-        //Gizmos.DrawSphere(controller.transform.position + controller.center + new Vector3(0, (controller.height / 2) - controller.radius, 0), controller.radius); // sus
+        if (other.GetComponent<Collider>().gameObject.layer == LayerMask.NameToLayer("Water"))
+        {
+            inWater = true;
+        }
+    }
+    private void OnTriggerExit(Collider other)
+    {
+        if (other.GetComponent<Collider>().gameObject.layer == LayerMask.NameToLayer("Water"))
+        {
+            inWater = false;
+        }
+    }
 
-        //Gizmos.DrawSphere(controller.transform.position + controller.center, controller.radius);
-
-        Gizmos.DrawSphere(collider.transform.position + collider.center - transform.up * ((collider.height / 2) - collider.radius), collider.radius);
-        Gizmos.DrawSphere(collider.transform.position + collider.center + transform.up * ((collider.height / 2) - collider.radius), collider.radius);
-
-        //Gizmos.DrawSphere(transform.position + transform.up * (collider.radius - (collider.height / 2)), collider.radius);
-        //Gizmos.DrawSphere(transform.position + transform.up * (collider.height / 2 - collider.radius), collider.radius);
+    private void ResetPlayerStats()
+    {
+        rb.mass = refMass * transform.localScale.x * transform.localScale.x;
+        jumpForce = refJumpForce * transform.localScale.x * transform.localScale.x;
+        stepOffset = refStepOffset * transform.localScale.x;
+        switch (sizeControl.curSize)
+        {
+            case 0:
+                playerSpeed = refSpeed * transform.localScale.x;
+                break;
+            case 1:
+                playerSpeed = refSpeed;
+                break;
+            case 2:
+                playerSpeed = refSpeed * 1.5f;
+                break;
+        }
     }
 
     private void FixedUpdate()
     {
-        Vector3 newPosition = rb.position + transform.TransformDirection(input) * playerSpeed * Time.fixedDeltaTime;
-
-        // prevent clipping through walls
-        RaycastHit hit;
-        if (Physics.Raycast(rb.position, newPosition - rb.position, out hit, Vector3.Distance(rb.position, newPosition)))
+        Vector3 direction = transform.TransformDirection(input) * playerSpeed * Time.fixedDeltaTime;
+        if (developerMode)
         {
-            if (hit.collider.gameObject.layer != LayerMask.NameToLayer("Interactive"))
-            {
-                newPosition = hit.point - (newPosition - rb.position).normalized * 0.01f;
-            }
+            rb.MovePosition(rb.position + direction);
+            return;
+        }
+        float distance = direction.magnitude;
+
+        Vector3 sphere1 = transform.TransformPoint(collider.center) + transform.up * (collider.height * transform.localScale.x / 2 - collider.radius * transform.localScale.x);
+        Vector3 sphere2 = transform.TransformPoint(collider.center) - transform.up * (collider.height * transform.localScale.x / 2 - collider.radius * transform.localScale.x - stepOffset);
+
+        RaycastHit hit;
+        // prevent player from clipping through walls
+        if (Physics.CapsuleCast(sphere1, sphere2, collider.radius * transform.localScale.x, direction, out hit, distance, ~clipCheckIgnore))
+        {
+            Vector3 newPosition = rb.position + direction.normalized * hit.distance;
+            newPosition += hit.normal * 0.01f; // push away from the wall
+            rb.MovePosition(newPosition);
+        }
+        else
+        {
+            // If there is no hit, move normally
+            rb.MovePosition(rb.position + direction);
         }
 
-        rb.MovePosition(newPosition);
+        if (inWater && Input.GetButton("Jump"))
+        {
+            rb.AddForce(transform.up * swimUpScale, ForceMode.VelocityChange);
+        }
+
     }
     void Start()
     {
         rb = GetComponent<Rigidbody>();
         collider = GetComponent<CapsuleCollider>();
+        animator = GetComponent<Animator>();
+
         playerSpeed = refSpeed;
-        playerMaxFallVelocity = refMaxFallVelocity;
-        groundCheckDistance = refGroundCheckDistance;
-        gravityPanelCheckDistance = refGravityPanelCheckDistance;
-        jumpHeight = refJumpHeight;
-        ceilCheckHeight = refCeilCheckHeight;
+        stepOffset = refStepOffset;
+        mass = refMass;
+        jumpForce = refJumpForce;
+        developerMode = false;
 
 
         playerGravityScale = 4.9f;
-        curGravity = 0;
-        curJump = 0;
-        gravityPanelsEntered = 0;
 
         groundNormal = new Vector3(0, 1, 0);
+
         lastOnGravityPanel = false;
-        normalizedInput = new Vector3(0, 0);
-        clampedInput = new Vector3(0, 0);
-        move = Vector3.zero;
-        animator = GetComponent<Animator>();
         isRunning = false;
         isWalking = false;
         isFalling = false;
+        inWater = false;
         
     }
 
     void Update()
     {
-        switch (sizeControl.curSize)
+        if (developerMode)
         {
-            case 0:
-                playerSpeed = refSpeed / 2;
-                playerMaxFallVelocity = refMaxFallVelocity / 2;
-                groundCheckDistance = refGroundCheckDistance / 2;
-                gravityPanelCheckDistance = refGravityPanelCheckDistance / 2;
-                //jumpHeight = refJumpHeight / 2;
-                ceilCheckHeight = refCeilCheckHeight / 2;
-                break;
-            case 1:
-                playerSpeed = refSpeed;
-                playerMaxFallVelocity = refMaxFallVelocity;
-                groundCheckDistance = refGroundCheckDistance;
-                gravityPanelCheckDistance = refGravityPanelCheckDistance;
-                jumpHeight = refJumpHeight;
-                ceilCheckHeight = refCeilCheckHeight;
-                break;
-            case 2:
-                playerSpeed = refSpeed * 1.5f;
-                playerMaxFallVelocity = refMaxFallVelocity * 2;
-                groundCheckDistance = refGroundCheckDistance * 2;
-                gravityPanelCheckDistance = refGravityPanelCheckDistance * 2;
-                //jumpHeight = refJumpHeight * 2;
-                ceilCheckHeight = refCeilCheckHeight * 2;
-                break;
+            input = new Vector3(Input.GetAxis("Horizontal"), 0, Input.GetAxis("Vertical"));
+            RaycastHit hit;
+            if (Input.GetMouseButtonDown(0))
+            {
+                Physics.Raycast(playerCamera.transform.position, playerCamera.transform.forward, out hit);
+
+                Debug.Log(hit.normal);
+            }
+            if (Input.GetMouseButtonDown(1))
+            {
+                Physics.Raycast(playerCamera.transform.position, playerCamera.transform.forward, out hit);
+                transform.rotation = Quaternion.FromToRotation(transform.up, hit.normal) * transform.rotation;
+            }
+
+            if (Input.GetKey(KeyCode.Space))
+            {
+                rb.MovePosition(transform.position + transform.up * devModeSpeed);
+            }
+            if (Input.GetKey(KeyCode.LeftControl))
+            {
+                rb.MovePosition(transform.position - transform.up * devModeSpeed);
+            }
+            return;
+        }
+        if (sizeControl.sizeChanged)
+        {
+            ResetPlayerStats();
         }
 
-        isGrounded = Physics.SphereCast(groundCast.position, collider.radius, -groundNormal, out groundHit, 0.2f);
-        //Debug.Log(groundCast.position);
+        Vector3 groundCast = transform.TransformPoint(collider.center) - transform.up * ((collider.height * transform.localScale.x / 2) - collider.radius - 0.1f);
+        isGrounded = Physics.SphereCast(groundCast, collider.radius, -groundNormal, out groundHit, 0.2f);
 
         onGravityPanel = false;
         if (isGrounded && groundHit.transform.gameObject.layer == LayerMask.NameToLayer("Gravity Panel"))
@@ -212,7 +197,6 @@ public class PlayerMovement : MonoBehaviour
             onGravityPanel = true;
             groundNormal = groundHit.normal;
             transform.rotation = Quaternion.FromToRotation(transform.up, groundNormal) * transform.rotation;
-            Debug.Log(transform.forward);
             lastOnGravityPanel = true;
         }
 
@@ -223,110 +207,77 @@ public class PlayerMovement : MonoBehaviour
             lastOnGravityPanel = false;
         }
 
-        //onGravityPanel = Physics.SphereCast(collider.transform.position + collider.center + new Vector3(0, collider.radius - (collider.height / 2) + 0.1f, 0), collider.radius, -groundNormal, out gravityPanelHit, gravityPanelCheckDistance, gravityPanelMask);
-        //if (onGravityPanel)
-        //{
-        //    groundNormal = gravityPanelHit.normal;
-        //    transform.rotation = Quaternion.FromToRotation(transform.up, groundNormal) * transform.rotation;
-        //    lastOnGravityPanel = true;
-        //}
-        //else
-        //{
-        //    if (lastOnGravityPanel)
-        //    {
-        //        groundNormal = groundHit.normal;
-        //        transform.rotation = Quaternion.FromToRotation(transform.up, groundNormal) * transform.rotation;
-        //        controller.Move(groundNormal);
-        //    }
-        //    lastOnGravityPanel = false;
-        //}
-
-        //if (sizeControl.sizeChanged && (isGrounded || onGravityPanel))
-        //{
-        //    controller.Move(groundNormal * 2);
-        //}
-
         // gravity
         rb.AddForce(-groundNormal * playerGravityScale, ForceMode.Acceleration);
+        if (inWater)
+            rb.AddForce(groundNormal * archimedesForceScale, ForceMode.Force);
 
         if (isGrounded && Input.GetButtonDown("Jump"))
         {
-            rb.AddForce(groundNormal * jumpHeight, ForceMode.Impulse);
+            rb.AddForce(groundNormal * jumpForce, ForceMode.Impulse);
         }
 
-        input = new Vector3(Input.GetAxis("Horizontal"), 0, Input.GetAxis("Vertical"));
-        //move = (transform.forward * input.z + transform.right * input.x).normalized;
-        //rb.AddForce(move * playerSpeed, ForceMode.Acceleration);
-        //Debug.Log(rb.velocity);
+        Vector3 rawInput = new Vector3(Input.GetAxis("Horizontal"), 0, Input.GetAxis("Vertical"));
+        Vector3 normalizedInput = rawInput.normalized;
 
-        //input = new Vector3(Input.GetAxis("Horizontal"), 0, Input.GetAxis("Vertical"));
+        Vector3 clampedInput = rawInput;
 
-        //normalizedInput = input.normalized;
+        if (rawInput.z < 0 || Input.GetKey(KeyCode.LeftShift))
+        {
+            //targetSpeed /= 2;
+            clampedInput = Vector3.ClampMagnitude(rawInput, 0.5f);
+        }
+        else
+        {
+            clampedInput = Vector3.ClampMagnitude(rawInput, 1f);
+            clampedInput.x *= 0.75f;
+        }
 
-        //float targetSpeed = playerSpeed;
+        input = clampedInput;
 
-        //if (input.z < 0 || Input.GetKey(KeyCode.LeftShift))
-        //{
-        //    targetSpeed /= 2;
-        //    clampedInput = Vector3.ClampMagnitude(input, 0.5f);
-        //}
-        //else
-        //{
-        //    clampedInput = Vector3.ClampMagnitude(input, 1f);
-        //    clampedInput.x *= 0.75f;
-        //}
+        isWalking = false;
+        isRunning = false;
 
-        //Vector3 move = targetSpeed * Time.deltaTime * clampedInput;
+        if (clampedInput.magnitude > 0 && clampedInput.magnitude <= 0.5)
+            isWalking = true;
+        else if (clampedInput.magnitude > 0.5)
+            isRunning = true;
 
-        //Vector3 movementPlane = new Vector3(rb.velocity.x, 0, rb.velocity.z);
-        //if (movementPlane.magnitude < targetSpeed)
-        //{
-        //    rb.AddForce(move, ForceMode.Force);
-        //}
-
-        //isWalking = false;
-        //isRunning = false;
-
-        //if (clampedInput.magnitude > 0 && clampedInput.magnitude <= 0.5)
-        //    isWalking = true;
-        //else if (clampedInput.magnitude > 0.5)
-        //    isRunning = true;
-
-        //if (isFalling)
-        //    animator.SetInteger("currentState", animStates["Falling"]);
-        //else if (isWalking)
-        //{
-        //    if (normalizedInput.y >= 0.85)
-        //        animator.SetInteger("currentState", animStates["Walk Forwards"]);
-        //    else if (normalizedInput.y < 0.85 && normalizedInput.y >= 0.35 && normalizedInput.x > 0)
-        //        animator.SetInteger("currentState", animStates["Walk Forwards Right"]);
-        //    else if (normalizedInput.y < 0.35 && normalizedInput.y >= -0.35 && normalizedInput.x > 0)
-        //        animator.SetInteger("currentState", animStates["Strafe Right"]);
-        //    else if (normalizedInput.y < -0.35 && normalizedInput.y >= -0.85 && normalizedInput.x > 0)
-        //        animator.SetInteger("currentState", animStates["Walk Backwards Right"]);
-        //    else if (normalizedInput.y < -0.85)
-        //        animator.SetInteger("currentState", animStates["Walk Backwards"]);
-        //    else if (normalizedInput.y >= -0.85 && normalizedInput.y <= -0.35 && normalizedInput.x < 0)
-        //        animator.SetInteger("currentState", animStates["Walk Backwards Left"]);
-        //    else if (normalizedInput.y > -0.35 && normalizedInput.y <= 0.35 && normalizedInput.x < 0)
-        //        animator.SetInteger("currentState", animStates["Strafe Left"]);
-        //    else if (normalizedInput.y > 0.35 && normalizedInput.y < 0.85 && normalizedInput.x < 0)
-        //        animator.SetInteger("currentState", animStates["Walk Forwards Left"]);
-        //}
-        //else if (isRunning)
-        //{
-        //    if (normalizedInput.y >= 0.85)
-        //        animator.SetInteger("currentState", animStates["Run Forwards"]);
-        //    else if (normalizedInput.y < 0.85 && normalizedInput.y >= 0.35 && normalizedInput.x > 0)
-        //        animator.SetInteger("currentState", animStates["Run Forwards Right"]);
-        //    else if (normalizedInput.y > 0.35 && normalizedInput.y < 0.85 && normalizedInput.x < 0)
-        //        animator.SetInteger("currentState", animStates["Run Forwards Left"]);
-        //    else if (normalizedInput.y > -0.35 && normalizedInput.y <= 0.35 && normalizedInput.x < 0)
-        //        animator.SetInteger("currentState", animStates["Strafe Left"]);
-        //    else if (normalizedInput.y < 0.35 && normalizedInput.y >= -0.35 && normalizedInput.x > 0)
-        //        animator.SetInteger("currentState", animStates["Strafe Right"]);
-        //}
-        //else
-        //    animator.SetInteger("currentState", animStates["Idle"]);
+        if (!isGrounded)
+            animator.SetInteger("currentState", animStates["Falling"]);
+        else if (isWalking)
+        {
+            if (normalizedInput.z >= 0.85)
+                animator.SetInteger("currentState", animStates["Walk Forwards"]);
+            else if (normalizedInput.z < 0.85 && normalizedInput.z >= 0.35 && normalizedInput.x > 0)
+                animator.SetInteger("currentState", animStates["Walk Forwards Right"]);
+            else if (normalizedInput.z < 0.35 && normalizedInput.z >= -0.35 && normalizedInput.x > 0)
+                animator.SetInteger("currentState", animStates["Strafe Right"]);
+            else if (normalizedInput.z < -0.35 && normalizedInput.z >= -0.85 && normalizedInput.x > 0)
+                animator.SetInteger("currentState", animStates["Walk Backwards Right"]);
+            else if (normalizedInput.z < -0.85)
+                animator.SetInteger("currentState", animStates["Walk Backwards"]);
+            else if (normalizedInput.z >= -0.85 && normalizedInput.z <= -0.35 && normalizedInput.x < 0)
+                animator.SetInteger("currentState", animStates["Walk Backwards Left"]);
+            else if (normalizedInput.z > -0.35 && normalizedInput.z <= 0.35 && normalizedInput.x < 0)
+                animator.SetInteger("currentState", animStates["Strafe Left"]);
+            else if (normalizedInput.z > 0.35 && normalizedInput.z < 0.85 && normalizedInput.x < 0)
+                animator.SetInteger("currentState", animStates["Walk Forwards Left"]);
+        }
+        else if (isRunning)
+        {
+            if (normalizedInput.z >= 0.85)
+                animator.SetInteger("currentState", animStates["Run Forwards"]);
+            else if (normalizedInput.z < 0.85 && normalizedInput.z >= 0.35 && normalizedInput.x > 0)
+                animator.SetInteger("currentState", animStates["Run Forwards Right"]);
+            else if (normalizedInput.z > 0.35 && normalizedInput.z < 0.85 && normalizedInput.x < 0)
+                animator.SetInteger("currentState", animStates["Run Forwards Left"]);
+            else if (normalizedInput.z > -0.35 && normalizedInput.z <= 0.35 && normalizedInput.x < 0)
+                animator.SetInteger("currentState", animStates["Strafe Left"]);
+            else if (normalizedInput.z < 0.35 && normalizedInput.z >= -0.35 && normalizedInput.x > 0)
+                animator.SetInteger("currentState", animStates["Strafe Right"]);
+        }
+        else
+            animator.SetInteger("currentState", animStates["Idle"]);
     }
 }
