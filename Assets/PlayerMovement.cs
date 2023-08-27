@@ -8,6 +8,7 @@ using TMPro;
 using Unity.VisualScripting;
 using UnityEditor;
 using UnityEngine;
+using UnityEngine.UI;
 
 public class PlayerMovement : MonoBehaviour
 {
@@ -18,23 +19,40 @@ public class PlayerMovement : MonoBehaviour
     private RaycastHit groundHit;
 
     private readonly float refSpeed = 12;
-    private readonly float refStepOffset = 0.6f;
+    private readonly float refStepOffset = 0.7f;
     public float refMass = 1;
     public float refJumpForce = 10;
-    public float archimedesForceScale = 10;
-    public float swimUpScale = 10;
+    public float handLength = 1.5f;
+
+    private Vector3 lastCheckpointPosition;
+    private Quaternion lastCheckpointRotation;
+    private Vector3 lastCheckpointVelocity;
+    private bool lastCheckpointPauseState;
+    private bool lastCheckpointRewindState;
+    private float lastCheckpointEffectTime;
+    private Vector2 lastCheckpointGroundNormal;
+
+    public float buyoantForceScale;
+    public float swimUpScale = 5;
 
     public bool lastOnGravityPanel;
     public bool isWalking;
     public bool isRunning;
     public bool isFalling;
     public bool inWater;
+    public bool enteredWater;
+
+    public bool kill;
 
     public Rigidbody rb;
     public CapsuleCollider collider;
     public SizeControl sizeControl;
+    public TimeControl timeControl;
     public Camera playerCamera;
     public LayerMask clipCheckIgnore;
+    public LayerMask groundCheckIgnore;
+    public Canvas deathCanvas;
+    public Image deathImage;
     public float playerSpeed;
     private float playerGravityScale;
     public bool isGrounded;
@@ -45,6 +63,8 @@ public class PlayerMovement : MonoBehaviour
     public float stepOffset;
     public float mass;
     public float jumpForce;
+
+    private int deathFadePhase;
 
     private readonly Dictionary<string, int> animStates = new()
     {
@@ -69,6 +89,27 @@ public class PlayerMovement : MonoBehaviour
         {
             inWater = true;
         }
+        if (other.CompareTag("Checkpoint"))
+        {
+            lastCheckpointPosition = transform.position;
+            lastCheckpointRotation = transform.rotation;
+            lastCheckpointVelocity = rb.velocity;
+            lastCheckpointEffectTime = timeControl.effectRemainingTime;
+            lastCheckpointGroundNormal = groundNormal;
+            lastCheckpointPauseState = timeControl.pauseOn;
+            lastCheckpointRewindState = timeControl.rewindOn;
+        }
+    }
+
+    private void OnTriggerStay(Collider other)
+    {
+        if (other.GetComponent<Collider>().gameObject.layer == LayerMask.NameToLayer("Water") && 
+            other.CompareTag("Dangerous") &&
+            !timeControl.pauseOn &&
+            !timeControl.rewindOn)
+        {
+            kill = true;
+        }
     }
     private void OnTriggerExit(Collider other)
     {
@@ -80,19 +121,24 @@ public class PlayerMovement : MonoBehaviour
 
     private void ResetPlayerStats()
     {
-        rb.mass = refMass * transform.localScale.x * transform.localScale.x;
-        jumpForce = refJumpForce * transform.localScale.x * transform.localScale.x;
+        jumpForce = refJumpForce * transform.localScale.x * transform.localScale.x * transform.localScale.x;
         stepOffset = refStepOffset * transform.localScale.x;
         switch (sizeControl.curSize)
         {
             case 0:
-                playerSpeed = refSpeed * transform.localScale.x;
+                rb.mass = 1;
+                playerSpeed = 6;
+                jumpForce = 15;
                 break;
             case 1:
-                playerSpeed = refSpeed;
+                rb.mass = 2;
+                playerSpeed = 12;
+                jumpForce = 30;
                 break;
             case 2:
-                playerSpeed = refSpeed * 1.5f;
+                rb.mass = 8;
+                playerSpeed = 18;
+                jumpForce = 120;
                 break;
         }
     }
@@ -115,7 +161,7 @@ public class PlayerMovement : MonoBehaviour
         if (Physics.CapsuleCast(sphere1, sphere2, collider.radius * transform.localScale.x, direction, out hit, distance, ~clipCheckIgnore))
         {
             Vector3 newPosition = rb.position + direction.normalized * hit.distance;
-            newPosition += hit.normal * 0.01f; // push away from the wall
+            newPosition += hit.normal * 0.1f; // push away from the wall
             rb.MovePosition(newPosition);
         }
         else
@@ -124,26 +170,33 @@ public class PlayerMovement : MonoBehaviour
             rb.MovePosition(rb.position + direction);
         }
 
-        if (inWater && Input.GetButton("Jump"))
+        if (inWater && Input.GetButton("Jump") && !isGrounded)
         {
-            rb.AddForce(transform.up * swimUpScale, ForceMode.VelocityChange);
+            rb.velocity = Vector3.zero;
+            rb.MovePosition(rb.position + transform.up * swimUpScale * Time.fixedDeltaTime);
         }
-
+        else if (inWater && Input.GetKey(KeyCode.LeftControl) && !isGrounded)
+        {
+            rb.MovePosition(rb.position - transform.up * swimUpScale * Time.fixedDeltaTime);
+        }
     }
     void Start()
     {
         rb = GetComponent<Rigidbody>();
         collider = GetComponent<CapsuleCollider>();
         animator = GetComponent<Animator>();
+        timeControl = GetComponent<TimeControl>();
 
-        playerSpeed = refSpeed;
-        stepOffset = refStepOffset;
-        mass = refMass;
-        jumpForce = refJumpForce;
+        rb.mass = 2;
+        playerSpeed = 12;
+        jumpForce = 30;
+        stepOffset = refStepOffset * transform.localScale.x;
         developerMode = false;
 
 
         playerGravityScale = 4.9f;
+        deathFadePhase = 0;
+        buyoantForceScale = playerGravityScale - 0.1f;
 
         groundNormal = new Vector3(0, 1, 0);
 
@@ -152,7 +205,11 @@ public class PlayerMovement : MonoBehaviour
         isWalking = false;
         isFalling = false;
         inWater = false;
-        
+        enteredWater = false;
+        kill = false;
+
+        deathCanvas.gameObject.SetActive(false);
+
     }
 
     void Update()
@@ -189,7 +246,7 @@ public class PlayerMovement : MonoBehaviour
         }
 
         Vector3 groundCast = transform.TransformPoint(collider.center) - transform.up * ((collider.height * transform.localScale.x / 2) - collider.radius - 0.1f);
-        isGrounded = Physics.SphereCast(groundCast, collider.radius, -groundNormal, out groundHit, 0.2f);
+        isGrounded = Physics.SphereCast(groundCast, collider.radius, -groundNormal, out groundHit, 0.2f, ~groundCheckIgnore);
 
         onGravityPanel = false;
         if (isGrounded && groundHit.transform.gameObject.layer == LayerMask.NameToLayer("Gravity Panel"))
@@ -209,8 +266,30 @@ public class PlayerMovement : MonoBehaviour
 
         // gravity
         rb.AddForce(-groundNormal * playerGravityScale, ForceMode.Acceleration);
+
         if (inWater)
-            rb.AddForce(groundNormal * archimedesForceScale, ForceMode.Force);
+        {
+            if (sizeControl.sizeChanged)
+                enteredWater = false;
+            if (!enteredWater)
+            {
+                rb.AddForce(groundNormal * rb.velocity.magnitude * 0.5f, ForceMode.Impulse);
+                playerSpeed /= 2;
+                enteredWater = true;
+            }
+            rb.AddForce(groundNormal * buyoantForceScale, ForceMode.Acceleration);
+        }
+        else
+        {
+            if (enteredWater)
+            {
+                if (Input.GetButton("Jump"))
+                    rb.AddForce(groundNormal * jumpForce, ForceMode.Impulse);
+                ResetPlayerStats();
+            }
+                
+            enteredWater = false;
+        }
 
         if (isGrounded && Input.GetButtonDown("Jump"))
         {
@@ -279,5 +358,75 @@ public class PlayerMovement : MonoBehaviour
         }
         else
             animator.SetInteger("currentState", animStates["Idle"]);
+
+
+        if (kill)
+        {
+            deathCanvas.gameObject.SetActive(true);
+            if (deathFadePhase == 0)
+            {
+                Color color = deathImage.color;
+                color.a += Time.deltaTime;
+                if (color.a >= 1)
+                {
+                    color.a = 1;
+                    deathFadePhase = 1;
+                    transform.rotation = lastCheckpointRotation;
+                }
+                deathImage.color = color;
+            }
+            else if (deathFadePhase == 1)
+            {
+                Color color = deathImage.color;
+                color.a -= Time.deltaTime;
+                if (color.a <= 0)
+                {
+                    color.a = 0;
+                    deathFadePhase = 2;
+                }
+                deathImage.color = color;
+
+                transform.position = lastCheckpointPosition;
+                rb.velocity = lastCheckpointVelocity;
+                timeControl.effectRemainingTime = lastCheckpointEffectTime;
+                groundNormal = lastCheckpointGroundNormal;
+                timeControl.pauseOn = lastCheckpointPauseState;
+                timeControl.rewindOn = lastCheckpointRewindState;
+            }
+            else if (deathFadePhase == 2)
+            {
+                deathFadePhase = 0;
+                kill = false;
+                deathCanvas.gameObject.SetActive(false);
+            }
+        }
+
+        if (Input.GetKeyDown(KeyCode.F))
+        {
+            RaycastHit[] handHit = Physics.RaycastAll(playerCamera.transform.position, playerCamera.transform.forward, handLength, ~clipCheckIgnore);
+            float minDistance = Mathf.Infinity;
+            int minIndex = -1;
+            for (int i = 0; i < handHit.Length; i++)
+            {
+                if (handHit[i].distance < minDistance)
+                {
+                    minDistance = handHit[i].distance;
+                    minIndex = i;
+                }
+                else if (handHit[i].distance == minDistance && handHit[i].collider.CompareTag("Button"))
+                {
+                    minDistance = handHit[i].distance;
+                    minIndex = i;
+                }
+            }
+            if (minIndex != -1)
+            {
+                Debug.Log(handHit[minIndex].collider.gameObject.name);
+            }
+            if (minIndex != -1 && handHit[minIndex].collider.CompareTag("Button"))
+            {
+                handHit[minIndex].collider.gameObject.GetComponent<GameButton>().pressed = true;
+            }
+        }
     }
 }

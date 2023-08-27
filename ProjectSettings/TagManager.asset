@@ -7,6 +7,10 @@ TagManager:
   - Gravity Panel X
   - Gravity Panel Y
   - Gravity Panel Z
+  - ObjectiveKey
+  - Dangerous
+  - Checkpoint
+  - Button
   layers:
   - Default
   - TransparentFX
@@ -18,7 +22,7 @@ TagManager:
   - Jumpable
   - Interactive
   - Player
-  - 
+  - Trigger
   - 
   - 
   - 

@@ -10,6 +10,8 @@ public class ChangeCurrentCamera : MonoBehaviour
     // Start is called before the first frame update
     void Start()
     {
+        if (topCamera == null)
+            return;
         playerCamera.SetActive(true);
         topCamera.SetActive(false);
         
@@ -18,6 +20,8 @@ public class ChangeCurrentCamera : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
+        if (topCamera == null)
+            return;
         if (Input.GetKeyDown(KeyCode.LeftAlt))
         {
             playerCamera.SetActive(!playerCamera.activeSelf);
