@@ -11,7 +11,7 @@ public class FallEvent : MonoBehaviour
     {
         if (other.CompareTag("Player"))
         {
-            gravity.scale = 4.91f;
+            gravity.scale = 25;
         }
     }
     void Start()

@@ -141,14 +141,19 @@ public class Rewindable : MonoBehaviour
 {
     public TimeControl timeControl;
     public Rigidbody rb;
+    public Light light;
 
     public static int HISTORY_STACK_SIZE;
     private EnumerableDropOutStack.EnumerableDropOutStack<Vector3> positionHistory;
     private EnumerableDropOutStack.EnumerableDropOutStack<Quaternion> rotationHistory;
     private EnumerableDropOutStack.EnumerableDropOutStack<Vector3> rbVelocityHistory;
+    private EnumerableDropOutStack.EnumerableDropOutStack<Material> materialHistory;
+    private EnumerableDropOutStack.EnumerableDropOutStack<bool> lightStateHistory;
     private Vector3 freezePos;
     private Quaternion freezeRotation;
     private Vector3 freezeRbVelocity;
+    private Material freezeMaterial;
+    private bool freezeLightState;
     public bool waitingForPause;
     void Start()
     {
@@ -156,8 +161,12 @@ public class Rewindable : MonoBehaviour
         rb = GetComponent<Rigidbody>();
         if (rb != null && !rb.isKinematic)
             rbVelocityHistory = new EnumerableDropOutStack.EnumerableDropOutStack<Vector3>(HISTORY_STACK_SIZE);
+        light = GetComponent<Light>();
+        if (light != null)
+            lightStateHistory = new EnumerableDropOutStack.EnumerableDropOutStack<bool>(HISTORY_STACK_SIZE);
         positionHistory = new EnumerableDropOutStack.EnumerableDropOutStack<Vector3>(HISTORY_STACK_SIZE);
         rotationHistory = new EnumerableDropOutStack.EnumerableDropOutStack<Quaternion>(HISTORY_STACK_SIZE);
+        materialHistory = new EnumerableDropOutStack.EnumerableDropOutStack<Material>(HISTORY_STACK_SIZE);
         waitingForPause = true;
         freezePos = transform.position;
     }
@@ -170,13 +179,19 @@ public class Rewindable : MonoBehaviour
             {
                 freezePos = transform.position;
                 freezeRotation = transform.rotation;
+                freezeMaterial = gameObject.GetComponent<Renderer>().material;
                 if (rb != null && !rb.isKinematic)
                     freezeRbVelocity = rb.velocity;
+                if (light != null)
+                    freezeLightState = light.enabled;
                 waitingForPause = false;
             }
             transform.SetPositionAndRotation(freezePos, freezeRotation);
+            gameObject.GetComponent<Renderer>().material = freezeMaterial;
             if (rb != null && !rb.isKinematic)
                 rb.velocity = freezeRbVelocity;
+            if (light != null)
+                light.enabled = freezeLightState;
         }
         else
         {
@@ -189,14 +204,27 @@ public class Rewindable : MonoBehaviour
         {
             positionHistory.Push(transform.position);
             rotationHistory.Push(transform.rotation);
+            materialHistory.Push(gameObject.GetComponent<Renderer>().material);
             if (rb != null && !rb.isKinematic)
                 rbVelocityHistory.Push(rb.velocity);
+            if (light != null)
+                lightStateHistory.Push(light.enabled);
         }
         else if (timeControl.rewindOn)
         {
-            transform.SetPositionAndRotation(positionHistory.Pop(), rotationHistory.Pop());
-            if (rb != null && !rb.isKinematic)
-                rb.velocity = rbVelocityHistory.Pop();
+            if (positionHistory.Count() == 0)
+            {
+                timeControl.rewindOn = false;
+            }
+            else
+            {
+                transform.SetPositionAndRotation(positionHistory.Pop(), rotationHistory.Pop());
+                gameObject.GetComponent<Renderer>().material = materialHistory.Pop();
+                if (rb != null && !rb.isKinematic)
+                    rb.velocity = rbVelocityHistory.Pop();
+                if (light != null)
+                    light.enabled = lightStateHistory.Pop();
+            }
         }
     }
 }

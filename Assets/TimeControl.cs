@@ -14,10 +14,13 @@ public class TimeControl : MonoBehaviour
 
     public float effectRemainingTime;
 
+    private bool rewindAxis;
+
     void Start()
     {
         pauseOn = false;
         rewindOn = false;
+        rewindAxis = false;
 
         effectRemainingTime = effectMaxTime;
 
@@ -26,13 +29,20 @@ public class TimeControl : MonoBehaviour
 
     void Update()
     {
-        if (Input.GetKeyDown(KeyCode.Q) && effectRemainingTime > 0)
+        if (Input.GetAxis("RewindTime") == 0)
+        {
+            rewindAxis = false;
+        }
+
+
+        if (Input.GetButtonDown("PauseTime") && effectRemainingTime > 0)
         {
             pauseOn = !pauseOn;
             rewindOn = false;
         }
-        else if (Input.GetKeyDown(KeyCode.E) && effectRemainingTime > 0)
+        else if ((Input.GetButtonDown("RewindTime") || (Input.GetAxis("RewindTime") > 0) && !rewindAxis) && effectRemainingTime > 0)
         {
+            rewindAxis = true;
             rewindOn = !rewindOn;
             pauseOn = false;
         }

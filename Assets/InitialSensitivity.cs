@@ -5,14 +5,12 @@ using UnityEngine.UI;
 
 public class InitialSensitivity : MonoBehaviour
 {
-    // Start is called before the first frame update
     void Start()
     {
         Slider slider = GetComponent<Slider>();
-        slider.value = PlayerPrefs.GetFloat("sensitivity");
+        slider.value = PlayerPrefs.GetFloat("sensitivity", 500f);
     }
 
-    // Update is called once per frame
     void Update()
     {
         

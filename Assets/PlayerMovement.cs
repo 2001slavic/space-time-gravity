@@ -18,10 +18,7 @@ public class PlayerMovement : MonoBehaviour
 
     private RaycastHit groundHit;
 
-    private readonly float refSpeed = 12;
     private readonly float refStepOffset = 0.7f;
-    public float refMass = 1;
-    public float refJumpForce = 10;
     public float handLength = 1.5f;
 
     private Vector3 lastCheckpointPosition;
@@ -32,7 +29,9 @@ public class PlayerMovement : MonoBehaviour
     private float lastCheckpointEffectTime;
     private Vector2 lastCheckpointGroundNormal;
 
-    public float buyoantForceScale;
+    private bool sizeChanged;
+
+    public float buyoantForceScale = 24.75f;
     public float swimUpScale = 5;
 
     public bool lastOnGravityPanel;
@@ -46,7 +45,6 @@ public class PlayerMovement : MonoBehaviour
 
     public Rigidbody rb;
     public CapsuleCollider collider;
-    public SizeControl sizeControl;
     public TimeControl timeControl;
     public Camera playerCamera;
     public LayerMask clipCheckIgnore;
@@ -54,8 +52,9 @@ public class PlayerMovement : MonoBehaviour
     public Canvas deathCanvas;
     public Image deathImage;
     public float playerSpeed;
-    private float playerGravityScale;
+    public float playerGravityScale = 25f;
     public bool isGrounded;
+    private bool lastGrounded;
     public bool onGravityPanel;
     public Vector3 groundNormal;
     public Vector3 input;
@@ -63,8 +62,19 @@ public class PlayerMovement : MonoBehaviour
     public float stepOffset;
     public float mass;
     public float jumpForce;
+    public int curSize;
+
+    public float footStepTime = 0.25f;
+    private float curFootStepTime;
 
     private int deathFadePhase;
+    public AudioSource audioSource;
+    public AudioClip electrocutionAudio;
+    public AudioClip[] footstepsClips;
+    public AudioClip[] jumpClips;
+    public AudioClip[] landClips;
+    public AudioClip enterWater;
+    public AudioClip exitWater;
 
     private readonly Dictionary<string, int> animStates = new()
     {
@@ -81,12 +91,20 @@ public class PlayerMovement : MonoBehaviour
             { "Run Forwards"        , 10 },
             { "Run Forwards Right"  , 11 },
             { "Falling"             , 13 }
-        };
+    };
+
+    private readonly Dictionary<int, float> sizeToScale = new()
+    {
+        { 0, 0.5f },
+        { 1, 1.0f },
+        { 2, 2.0f },
+    };
 
     private void OnTriggerEnter(Collider other)
     {
         if (other.GetComponent<Collider>().gameObject.layer == LayerMask.NameToLayer("Water"))
         {
+            AudioSource.PlayClipAtPoint(enterWater, transform.position, PlayerPrefs.GetFloat("volume", 0.5f));
             inWater = true;
         }
         if (other.CompareTag("Checkpoint"))
@@ -103,48 +121,61 @@ public class PlayerMovement : MonoBehaviour
 
     private void OnTriggerStay(Collider other)
     {
-        if (other.GetComponent<Collider>().gameObject.layer == LayerMask.NameToLayer("Water") && 
+        if (other.GetComponent<Collider>().gameObject.layer == LayerMask.NameToLayer("Water") &&
             other.CompareTag("Dangerous") &&
             !timeControl.pauseOn &&
             !timeControl.rewindOn)
         {
+            if (!kill)
+            {
+                AudioSource.PlayClipAtPoint(electrocutionAudio, transform.position, PlayerPrefs.GetFloat("volume", 0.5f));
+            }
+                
             kill = true;
         }
     }
+
     private void OnTriggerExit(Collider other)
     {
         if (other.GetComponent<Collider>().gameObject.layer == LayerMask.NameToLayer("Water"))
         {
+            AudioSource.PlayClipAtPoint(exitWater, transform.position, PlayerPrefs.GetFloat("volume", 0.5f));
             inWater = false;
         }
     }
 
     private void ResetPlayerStats()
     {
-        jumpForce = refJumpForce * transform.localScale.x * transform.localScale.x * transform.localScale.x;
-        stepOffset = refStepOffset * transform.localScale.x;
-        switch (sizeControl.curSize)
+        
+        switch (curSize)
         {
             case 0:
+                transform.localScale = new Vector3(0.5f, 0.5f, 0.5f);
                 rb.mass = 1;
                 playerSpeed = 6;
-                jumpForce = 15;
+                jumpForce = 12.5f;
                 break;
             case 1:
+                transform.localScale = new Vector3(1, 1, 1);
                 rb.mass = 2;
                 playerSpeed = 12;
-                jumpForce = 30;
+                jumpForce = 25;
                 break;
             case 2:
+                transform.localScale = new Vector3(2, 2, 2);
                 rb.mass = 8;
                 playerSpeed = 18;
-                jumpForce = 120;
+                jumpForce = 100;
                 break;
         }
+        stepOffset = refStepOffset * transform.localScale.x;
     }
 
     private void FixedUpdate()
     {
+        // gravity
+        rb.AddForce(-groundNormal * playerGravityScale, ForceMode.Acceleration);
+
         Vector3 direction = transform.TransformDirection(input) * playerSpeed * Time.fixedDeltaTime;
         if (developerMode)
         {
@@ -170,15 +201,21 @@ public class PlayerMovement : MonoBehaviour
             rb.MovePosition(rb.position + direction);
         }
 
-        if (inWater && Input.GetButton("Jump") && !isGrounded)
+        if (inWater)
         {
-            rb.velocity = Vector3.zero;
-            rb.MovePosition(rb.position + transform.up * swimUpScale * Time.fixedDeltaTime);
+            rb.AddForce(groundNormal * buyoantForceScale, ForceMode.Acceleration);
+
+            if (Input.GetButton("Jump") && !isGrounded)
+            {
+                rb.velocity = Vector3.zero;
+                rb.MovePosition(rb.position + transform.up * swimUpScale * Time.fixedDeltaTime);
+            }
+            else if (Input.GetButton("SwimDown")  && !isGrounded)
+            {
+                rb.MovePosition(rb.position - transform.up * swimUpScale * Time.fixedDeltaTime);
+            }
         }
-        else if (inWater && Input.GetKey(KeyCode.LeftControl) && !isGrounded)
-        {
-            rb.MovePosition(rb.position - transform.up * swimUpScale * Time.fixedDeltaTime);
-        }
+        
     }
     void Start()
     {
@@ -187,16 +224,12 @@ public class PlayerMovement : MonoBehaviour
         animator = GetComponent<Animator>();
         timeControl = GetComponent<TimeControl>();
 
-        rb.mass = 2;
-        playerSpeed = 12;
-        jumpForce = 30;
-        stepOffset = refStepOffset * transform.localScale.x;
+        curSize = 1;
+        ResetPlayerStats();
         developerMode = false;
 
 
-        playerGravityScale = 4.9f;
         deathFadePhase = 0;
-        buyoantForceScale = playerGravityScale - 0.1f;
 
         groundNormal = new Vector3(0, 1, 0);
 
@@ -207,8 +240,16 @@ public class PlayerMovement : MonoBehaviour
         inWater = false;
         enteredWater = false;
         kill = false;
+        sizeChanged = false;
+        lastGrounded = true;
+        isGrounded = false;
 
         deathCanvas.gameObject.SetActive(false);
+
+        curFootStepTime = footStepTime;
+
+        audioSource = GetComponent<AudioSource>();
+        audioSource.volume = PlayerPrefs.GetFloat("volume", 0.5f) * 0.1f;
 
     }
 
@@ -240,13 +281,40 @@ public class PlayerMovement : MonoBehaviour
             }
             return;
         }
-        if (sizeControl.sizeChanged)
+        if (Input.GetButtonDown("SizeChange"))
         {
+            int nextSize = curSize;
+            if (nextSize == 2)
+                nextSize = 0;
+            else
+                nextSize++;
+
+            Vector3 sphere1 = transform.TransformPoint(collider.center) + transform.up * (collider.height * transform.localScale.x / 2 - collider.radius * transform.localScale.x);
+            Vector3 sphere2 = transform.TransformPoint(collider.center) - transform.up * (collider.height * transform.localScale.x / 2 - collider.radius * transform.localScale.x - stepOffset);
+
+            bool test = Physics.CapsuleCast(sphere1, sphere2, collider.radius * transform.localScale.x, transform.up, out _, collider.height * transform.localScale.x, ~clipCheckIgnore);
+            if (nextSize == 0 || !test)
+            {
+                sizeChanged = true;
+                curSize = nextSize;
+                
+            }
+            else
+            {
+                curSize = 0;
+            }
             ResetPlayerStats();
         }
 
         Vector3 groundCast = transform.TransformPoint(collider.center) - transform.up * ((collider.height * transform.localScale.x / 2) - collider.radius - 0.1f);
         isGrounded = Physics.SphereCast(groundCast, collider.radius, -groundNormal, out groundHit, 0.2f, ~groundCheckIgnore);
+
+        if (isGrounded && !lastGrounded && !inWater)
+        {
+            audioSource.clip = landClips[UnityEngine.Random.Range((int)0, landClips.Length)];
+            audioSource.volume = PlayerPrefs.GetFloat("volume", 0.5f) * 0.1f;
+            audioSource.Play();
+        }
 
         onGravityPanel = false;
         if (isGrounded && groundHit.transform.gameObject.layer == LayerMask.NameToLayer("Gravity Panel"))
@@ -264,12 +332,9 @@ public class PlayerMovement : MonoBehaviour
             lastOnGravityPanel = false;
         }
 
-        // gravity
-        rb.AddForce(-groundNormal * playerGravityScale, ForceMode.Acceleration);
-
         if (inWater)
         {
-            if (sizeControl.sizeChanged)
+            if (sizeChanged)
                 enteredWater = false;
             if (!enteredWater)
             {
@@ -277,14 +342,15 @@ public class PlayerMovement : MonoBehaviour
                 playerSpeed /= 2;
                 enteredWater = true;
             }
-            rb.AddForce(groundNormal * buyoantForceScale, ForceMode.Acceleration);
         }
         else
         {
             if (enteredWater)
             {
                 if (Input.GetButton("Jump"))
+                {
                     rb.AddForce(groundNormal * jumpForce, ForceMode.Impulse);
+                }
                 ResetPlayerStats();
             }
                 
@@ -293,6 +359,12 @@ public class PlayerMovement : MonoBehaviour
 
         if (isGrounded && Input.GetButtonDown("Jump"))
         {
+            if (!inWater)
+            {
+                audioSource.clip = jumpClips[UnityEngine.Random.Range((int)0, jumpClips.Length)];
+                audioSource.volume = PlayerPrefs.GetFloat("volume", 0.5f) * 0.1f;
+                audioSource.Play();
+            }
             rb.AddForce(groundNormal * jumpForce, ForceMode.Impulse);
         }
 
@@ -303,7 +375,6 @@ public class PlayerMovement : MonoBehaviour
 
         if (rawInput.z < 0 || Input.GetKey(KeyCode.LeftShift))
         {
-            //targetSpeed /= 2;
             clampedInput = Vector3.ClampMagnitude(rawInput, 0.5f);
         }
         else
@@ -401,7 +472,7 @@ public class PlayerMovement : MonoBehaviour
             }
         }
 
-        if (Input.GetKeyDown(KeyCode.F))
+        if (Input.GetButtonDown("Use"))
         {
             RaycastHit[] handHit = Physics.RaycastAll(playerCamera.transform.position, playerCamera.transform.forward, handLength, ~clipCheckIgnore);
             float minDistance = Mathf.Infinity;
@@ -428,5 +499,18 @@ public class PlayerMovement : MonoBehaviour
                 handHit[minIndex].collider.gameObject.GetComponent<GameButton>().pressed = true;
             }
         }
+
+
+        if (isGrounded && isRunning && !inWater && curFootStepTime <= 0)
+        {
+            audioSource.clip = footstepsClips[UnityEngine.Random.Range((int)0, footstepsClips.Length)];
+            audioSource.volume = PlayerPrefs.GetFloat("volume", 0.5f) * 0.1f;
+            audioSource.Play();
+            curFootStepTime = footStepTime;
+        }
+
+        curFootStepTime -= Time.deltaTime;
+        sizeChanged = false;
+        lastGrounded = isGrounded;
     }
 }

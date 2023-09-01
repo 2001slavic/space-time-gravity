@@ -9,7 +9,10 @@ public class ResetTimeControl : MonoBehaviour
 
     private void OnTriggerStay(Collider other)
     {
-        timeControl.effectRemainingTime = timeControl.effectMaxTime;
+        if (other.CompareTag("Player"))
+        {
+            timeControl.effectRemainingTime = timeControl.effectMaxTime;
+        }
     }
     private void OnTriggerEnter(Collider other)
     {

@@ -6,14 +6,19 @@ public class Gravity : MonoBehaviour
 {
     private Rigidbody rb;
     public Vector3 groundNormal;
-    public float scale = 4.9f;
+    public float scale = 25f;
     void Start()
     {
         rb = GetComponent<Rigidbody>();
     }
 
-    void Update()
+    private void FixedUpdate()
     {
         rb.AddForce(-groundNormal * scale, ForceMode.Acceleration);
+    }
+
+    void Update()
+    {
+        
     }
 }
