@@ -3,9 +3,9 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 
-public class CharacterSizeIndicator : MonoBehaviour
+public class CharacterSizeIndicatorNetwork : MonoBehaviour
 {
-    public PlayerMovement playerMovement;
+    public PlayerMovementNetwork playerMovement;
 
     public Color activeColor;
     public Color inactiveColor;
@@ -19,7 +19,6 @@ public class CharacterSizeIndicator : MonoBehaviour
         
     }
 
-    // Update is called once per frame
     void Update()
     {
         switch (playerMovement.curSize)
