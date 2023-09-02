@@ -22,32 +22,43 @@ public class MainMenu : MonoBehaviour
     public GameObject selectedInQuit;
     public GameObject selectedInNetworkMP;
 
-    public void NewScene(string name)
-    {
-        SceneManager.LoadScene(name);
+    private const int UNDEFINED = 0;
+    private const int HOST = 1;
+    private const int CLIENT = 2;
 
-        if (SceneManager.GetActiveScene().name != name)
-        {
-            StartCoroutine("WaitForSceneLoad", name);
-        }
+    private int networkManagerQuery;
+
+
+    // A public method that can be called from other scripts or UI buttons
+    private void LoadScene(string sceneName)
+    {
+        // Subscribe to the sceneLoaded event
+        SceneManager.sceneLoaded += OnSceneLoaded;
+
+        // Load the scene normally
+        SceneManager.LoadScene(sceneName);
     }
 
-    IEnumerator WaitForSceneLoad(string name)
+    // A private method that will be called when a scene is loaded
+    private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
     {
-        while (SceneManager.GetActiveScene().name != name)
-        {
-            yield return null;
-        }
+        // Unsubscribe from the sceneLoaded event to avoid memory leaks
+        SceneManager.sceneLoaded -= OnSceneLoaded;
 
-        //// Do anything after proper scene has been loaded
-        //if (SceneManager.GetActiveScene().name == name)
-        //{
-        //    Debug.Log(SceneManager.GetActiveScene().buildIndex);
-        //    GameObject spawner = GameObject.FindWithTag("scene" + sceneNumber);
-        //    spawner.GetComponent<spawnPlayer>().spawn(team);
-        //}
-        //currentScene = sceneNumber;
+        // Optionally, you can do some additional logic here after the scene is loaded
+        switch (networkManagerQuery)
+        {
+            case HOST:
+                NetworkManager.Singleton.StartHost();
+                break;
+            case CLIENT:
+                NetworkManager.Singleton.StartClient();
+                break;
+        }
+        //SceneManager.UnloadSceneAsync("MainMenu");
     }
+
+
     public void SingePlayerClick()
     {
         mainMenu.SetActive(false);
@@ -95,22 +106,14 @@ public class MainMenu : MonoBehaviour
 
     public void HostClick()
     {
-        SceneManager.LoadSceneAsync("TestMP");
-        while (SceneManager.GetActiveScene().name != "TestMP")
-            ;
-
-        NetworkManager.Singleton.StartHost();
-        SceneManager.UnloadSceneAsync("MainMenu");
+        networkManagerQuery = HOST;
+        LoadScene("TestMP");
     }
 
     public void ClientClick()
     {
-        SceneManager.LoadSceneAsync("TestMP");
-        while (SceneManager.GetActiveScene().name != "TestMP")
-            ;
-
-        NetworkManager.Singleton.StartClient();
-        SceneManager.UnloadSceneAsync("MainMenu");
+        networkManagerQuery = CLIENT;
+        LoadScene("TestMP");
     }
 
     public void QuitYesClick()
@@ -159,6 +162,7 @@ public class MainMenu : MonoBehaviour
 
     private void Start()
     {
+        networkManagerQuery = UNDEFINED;
         singelplayerMenu.SetActive(false);
         settingsMenu.SetActive(false);
         quitMenu.SetActive(false);

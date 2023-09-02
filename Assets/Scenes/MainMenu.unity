@@ -2522,7 +2522,6 @@ MonoBehaviour:
   mainMenu: {fileID: 1916604285}
   settingsMenu: {fileID: 2027475623}
   singelplayerMenu: {fileID: 604710042}
-  multiPlayerMenu: {fileID: 0}
   networkMPMenu: {fileID: 1891599207}
   quitMenu: {fileID: 790120763}
   selectedInMainMenu: {fileID: 703133203}
@@ -2680,7 +2679,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!224 &790120764
 RectTransform:
   m_ObjectHideFlags: 0
@@ -5296,7 +5295,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!224 &1916604286
 RectTransform:
   m_ObjectHideFlags: 0
@@ -5371,7 +5370,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 76c392e42b5098c458856cdf6ecaaaa1, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  m_FirstSelected: {fileID: 0}
+  m_FirstSelected: {fileID: 703133203}
   m_sendNavigationEvents: 1
   m_DragThreshold: 10
 --- !u!4 &1920117883

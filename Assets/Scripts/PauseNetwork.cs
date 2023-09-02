@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Collections.Generic;
+using Unity.Netcode;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.SceneManagement;
@@ -61,12 +62,14 @@ public class PauseNetwork : MonoBehaviour
 
     public void ToMainMenuClick()
     {
+        NetworkManager.Singleton.Shutdown();
         SceneManager.LoadScene("MainMenu");
         SceneManager.UnloadSceneAsync("TestMP");
     }
 
     public void ToDesktopClick()
     {
+        NetworkManager.Singleton.Shutdown();
         Application.Quit();
     }
 

@@ -63722,7 +63722,7 @@ MonoBehaviour:
   NetworkConfig:
     ProtocolVersion: 0
     NetworkTransport: {fileID: 1601532637}
-    PlayerPrefab: {fileID: 1046891891205511384, guid: 80f28e67e4bb0ee4891a02e0af2e82cb, type: 3}
+    PlayerPrefab: {fileID: 6669195559412251563, guid: 80f28e67e4bb0ee4891a02e0af2e82cb, type: 3}
     Prefabs:
       NetworkPrefabsLists: []
     TickRate: 30
