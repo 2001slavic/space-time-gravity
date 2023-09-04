@@ -1,11 +1,12 @@
 using System.Collections;
 using System.Collections.Generic;
 using Unity.Netcode;
+using UnityEditor.PackageManager;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.SceneManagement;
 
-public class PauseNetwork : MonoBehaviour
+public class PauseNetwork : NetworkBehaviour
 {
     public bool gamePaused;
     public Canvas pauseCanvas;
@@ -22,11 +23,12 @@ public class PauseNetwork : MonoBehaviour
     public GameObject selectedInSettings;
     public GameObject selectedInQuit;
 
-    public MouseLook mouseLook;
-    public JoystickLook joystickLook;
+    public MouseLookNetwork mouseLook;
+    public JoystickLookNetwork joystickLook;
 
     public void ResumeClick()
     {
+        if (!IsOwner) return;
         gamePaused = false;
         pauseCanvas.gameObject.SetActive(false);
         pauseCamera.gameObject.SetActive(false);
@@ -38,6 +40,7 @@ public class PauseNetwork : MonoBehaviour
 
     public void SettingsClick()
     {
+        if (!IsOwner) return;
         mainMenu.SetActive(false);
         quitMenu.SetActive(false);
         settingsMenu.SetActive(true);
@@ -46,6 +49,7 @@ public class PauseNetwork : MonoBehaviour
 
     public void QuitMenuClick()
     {
+        if (!IsOwner) return;
         mainMenu.SetActive(false);
         settingsMenu.SetActive(false);
         quitMenu.SetActive(true);
@@ -54,6 +58,7 @@ public class PauseNetwork : MonoBehaviour
 
     public void BackToPauseMenuClick()
     {
+        if (!IsOwner) return;
         settingsMenu.SetActive(false);
         quitMenu.SetActive(false);
         mainMenu.SetActive(true);
@@ -62,6 +67,7 @@ public class PauseNetwork : MonoBehaviour
 
     public void ToMainMenuClick()
     {
+        if (!IsOwner) return;
         NetworkManager.Singleton.Shutdown();
         SceneManager.LoadScene("MainMenu");
         SceneManager.UnloadSceneAsync("TestMP");
@@ -69,6 +75,7 @@ public class PauseNetwork : MonoBehaviour
 
     public void ToDesktopClick()
     {
+        if (!IsOwner) return;
         NetworkManager.Singleton.Shutdown();
         Application.Quit();
     }
@@ -80,6 +87,7 @@ public class PauseNetwork : MonoBehaviour
 
     public void SetMouseSensitivity(float value)
     {
+        if (!IsOwner) return;
         PlayerPrefs.SetFloat("sensitivity", value);
     }
 
@@ -90,17 +98,28 @@ public class PauseNetwork : MonoBehaviour
 
     public void SetJoystickSensitivity(float value)
     {
+        if (!IsOwner) return;
         PlayerPrefs.SetFloat("jsensitivity", value);
     }
 
     public void SetVolume(float value)
     {
+        if (!IsOwner) return;
         PlayerPrefs.SetFloat("volume", value);
+    }
+
+    private void NetworkManager_OnClientDisconnectCallback(ulong clientid)
+    {
+        if (!IsOwner) return;
+        SceneManager.LoadScene("MainMenu");
+        SceneManager.UnloadSceneAsync("TestMP");
     }
 
 
     void Start()
     {
+        if (!IsOwner) return;
+        NetworkManager.Singleton.OnClientDisconnectCallback += NetworkManager_OnClientDisconnectCallback;
         gamePaused = false;
         pauseCanvas.gameObject.SetActive(false);
         pauseCamera.gameObject.SetActive(false);
@@ -111,6 +130,7 @@ public class PauseNetwork : MonoBehaviour
     }
     void Update()
     {
+        if (!IsOwner) return;
         if (Input.GetKeyDown(KeyCode.Escape) || Input.GetButtonDown("Start"))
         {
             gamePaused = !gamePaused;

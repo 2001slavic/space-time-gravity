@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using Unity.Netcode;
 using UnityEngine;
 
-public class MouseLook : MonoBehaviour
+public class MouseLookNetwork : NetworkBehaviour
 {
 
     public float mouseSensitivity;
@@ -12,6 +12,10 @@ public class MouseLook : MonoBehaviour
 
     void Start()
     {
+        if (!IsOwner)
+        {
+            return;
+        }
         Cursor.lockState = CursorLockMode.Locked;
         mouseSensitivity = PlayerPrefs.GetFloat("sensitivity", 500);
     }
@@ -19,6 +23,10 @@ public class MouseLook : MonoBehaviour
 
     void Update()
     {
+        if (!IsOwner)
+        {
+            return;
+        }
         float mouseX = mouseSensitivity * Input.GetAxis("Mouse X") * Time.deltaTime;
         float mouseY = mouseSensitivity * Input.GetAxis("Mouse Y") * Time.deltaTime;
 

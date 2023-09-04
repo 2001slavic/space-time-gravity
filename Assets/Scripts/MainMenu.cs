@@ -45,7 +45,6 @@ public class MainMenu : MonoBehaviour
         // Unsubscribe from the sceneLoaded event to avoid memory leaks
         SceneManager.sceneLoaded -= OnSceneLoaded;
 
-        // Optionally, you can do some additional logic here after the scene is loaded
         switch (networkManagerQuery)
         {
             case HOST:
@@ -55,9 +54,7 @@ public class MainMenu : MonoBehaviour
                 NetworkManager.Singleton.StartClient();
                 break;
         }
-        //SceneManager.UnloadSceneAsync("MainMenu");
     }
-
 
     public void SingePlayerClick()
     {
@@ -162,6 +159,7 @@ public class MainMenu : MonoBehaviour
 
     private void Start()
     {
+        Cursor.lockState = CursorLockMode.Confined;
         networkManagerQuery = UNDEFINED;
         singelplayerMenu.SetActive(false);
         settingsMenu.SetActive(false);
@@ -169,10 +167,12 @@ public class MainMenu : MonoBehaviour
         //multiPlayerMenu.SetActive(false);
         networkMPMenu.SetActive(false);
         mainMenu.SetActive(true);
+        
     }
 
     private void Update()
     {
+
         if (Input.GetButtonDown("Cancel"))
         {
             if (mainMenu.activeSelf)

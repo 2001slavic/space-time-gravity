@@ -1,9 +1,10 @@
 using System.Collections;
 using System.Collections.Generic;
+using Unity.Netcode;
 using UnityEngine;
 using UnityEngine.UI;
 
-public class CharacterSizeIndicatorNetwork : MonoBehaviour
+public class CharacterSizeIndicatorNetwork : NetworkBehaviour
 {
     public PlayerMovementNetwork playerMovement;
 
@@ -16,11 +17,21 @@ public class CharacterSizeIndicatorNetwork : MonoBehaviour
 
     void Start()
     {
-        
+        if (!IsOwner)
+        {
+            gameObject.SetActive(false);
+            return;
+        }
     }
 
     void Update()
     {
+        if (!IsOwner)
+        {
+            gameObject.SetActive(false);
+            return;
+        }
+
         switch (playerMovement.curSize)
         {
             case 0:

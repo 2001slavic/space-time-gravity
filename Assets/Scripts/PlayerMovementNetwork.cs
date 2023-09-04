@@ -46,6 +46,7 @@ public class PlayerMovementNetwork : NetworkBehaviour
 
     public Rigidbody rb;
     public CapsuleCollider collider;
+    public SkinnedMeshRenderer skinnedMeshRenderer;
     public Camera playerCamera;
     public LayerMask clipCheckIgnore;
     public LayerMask groundCheckIgnore;
@@ -102,6 +103,10 @@ public class PlayerMovementNetwork : NetworkBehaviour
 
     private void OnTriggerEnter(Collider other)
     {
+        if (!IsOwner)
+        {
+            return;
+        }
         if (other.GetComponent<Collider>().gameObject.layer == LayerMask.NameToLayer("Water"))
         {
             AudioSource.PlayClipAtPoint(enterWater, transform.position, PlayerPrefs.GetFloat("volume", 0.5f));
@@ -118,6 +123,10 @@ public class PlayerMovementNetwork : NetworkBehaviour
 
     private void OnTriggerStay(Collider other)
     {
+        if (!IsOwner)
+        {
+            return;
+        }
         if (other.GetComponent<Collider>().gameObject.layer == LayerMask.NameToLayer("Water") &&
             other.CompareTag("Dangerous"))
         {
@@ -132,6 +141,10 @@ public class PlayerMovementNetwork : NetworkBehaviour
 
     private void OnTriggerExit(Collider other)
     {
+        if (!IsOwner)
+        {
+            return;
+        }
         if (other.GetComponent<Collider>().gameObject.layer == LayerMask.NameToLayer("Water"))
         {
             AudioSource.PlayClipAtPoint(exitWater, transform.position, PlayerPrefs.GetFloat("volume", 0.5f));
@@ -168,6 +181,10 @@ public class PlayerMovementNetwork : NetworkBehaviour
 
     private void FixedUpdate()
     {
+        if (!IsOwner)
+        {
+            return;
+        }
         // gravity
         rb.AddForce(-groundNormal * playerGravityScale, ForceMode.Acceleration);
 
@@ -214,6 +231,10 @@ public class PlayerMovementNetwork : NetworkBehaviour
     }
     void Start()
     {
+        if (!IsOwner)
+        {
+            return;
+        }
         rb = GetComponent<Rigidbody>();
         collider = GetComponent<CapsuleCollider>();
         animator = GetComponent<Animator>();
@@ -238,6 +259,7 @@ public class PlayerMovementNetwork : NetworkBehaviour
         lastGrounded = true;
         isGrounded = false;
 
+        skinnedMeshRenderer.gameObject.SetActive(false);
         deathCanvas.gameObject.SetActive(false);
 
         curFootStepTime = footStepTime;
@@ -249,6 +271,11 @@ public class PlayerMovementNetwork : NetworkBehaviour
 
     void Update()
     {
+        if (!IsOwner)
+        {
+            return;
+        }
+        skinnedMeshRenderer.gameObject.SetActive(false);
         if (developerMode)
         {
             input = new Vector3(Input.GetAxis("Horizontal"), 0, Input.GetAxis("Vertical"));
