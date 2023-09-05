@@ -1,7 +1,6 @@
 using System.Collections;
 using System.Collections.Generic;
 using Unity.Netcode;
-using UnityEditor.PackageManager;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.SceneManagement;
@@ -18,13 +17,31 @@ public class PauseNetwork : NetworkBehaviour
     public GameObject mainMenu;
     public GameObject settingsMenu;
     public GameObject quitMenu;
+    public GameObject hostWaitMenu;
 
     public GameObject selectedInMain;
     public GameObject selectedInSettings;
     public GameObject selectedInQuit;
+    public GameObject selectedInHostWait;
 
     public MouseLookNetwork mouseLook;
     public JoystickLookNetwork joystickLook;
+
+    public bool waitForSecondPlayer;
+
+    public void ShowHostWaitScreen()
+    {
+        if (!IsOwner) return;
+        playerCamera.gameObject.SetActive(false);
+        pauseCanvas.gameObject.SetActive(true);
+        pauseCamera.gameObject.SetActive(true);
+        settingsMenu.SetActive(false);
+        quitMenu.SetActive(false);
+        mainMenu.SetActive(false);
+        hostWaitMenu.SetActive(true);
+        Cursor.lockState = CursorLockMode.Confined;
+        eventSystem.SetSelectedGameObject(selectedInHostWait);
+    }
 
     public void ResumeClick()
     {
@@ -32,6 +49,7 @@ public class PauseNetwork : NetworkBehaviour
         gamePaused = false;
         pauseCanvas.gameObject.SetActive(false);
         pauseCamera.gameObject.SetActive(false);
+        hostWaitMenu.gameObject.SetActive(false);
         playerCamera.gameObject.SetActive(true);
         Cursor.lockState = CursorLockMode.Locked;
         mouseLook.mouseSensitivity = GetMouseSensitivity();
@@ -43,6 +61,7 @@ public class PauseNetwork : NetworkBehaviour
         if (!IsOwner) return;
         mainMenu.SetActive(false);
         quitMenu.SetActive(false);
+        hostWaitMenu.gameObject.SetActive(false);
         settingsMenu.SetActive(true);
         eventSystem.SetSelectedGameObject(selectedInSettings);
     }
@@ -52,6 +71,7 @@ public class PauseNetwork : NetworkBehaviour
         if (!IsOwner) return;
         mainMenu.SetActive(false);
         settingsMenu.SetActive(false);
+        hostWaitMenu.gameObject.SetActive(false);
         quitMenu.SetActive(true);
         eventSystem.SetSelectedGameObject(selectedInQuit);
     }
@@ -61,6 +81,7 @@ public class PauseNetwork : NetworkBehaviour
         if (!IsOwner) return;
         settingsMenu.SetActive(false);
         quitMenu.SetActive(false);
+        hostWaitMenu.gameObject.SetActive(false);
         mainMenu.SetActive(true);
         eventSystem.SetSelectedGameObject(selectedInMain);
     }
@@ -69,6 +90,7 @@ public class PauseNetwork : NetworkBehaviour
     {
         if (!IsOwner) return;
         NetworkManager.Singleton.Shutdown();
+        Destroy(NetworkManager.Singleton.gameObject);
         SceneManager.LoadScene("MainMenu");
         SceneManager.UnloadSceneAsync("TestMP");
     }
@@ -77,6 +99,7 @@ public class PauseNetwork : NetworkBehaviour
     {
         if (!IsOwner) return;
         NetworkManager.Singleton.Shutdown();
+        Destroy(NetworkManager.Singleton.gameObject);
         Application.Quit();
     }
 
@@ -111,26 +134,71 @@ public class PauseNetwork : NetworkBehaviour
     private void NetworkManager_OnClientDisconnectCallback(ulong clientid)
     {
         if (!IsOwner) return;
+        if (clientid != 1) return;
         SceneManager.LoadScene("MainMenu");
+        NetworkManager.Singleton.Shutdown();
+        Destroy(NetworkManager.Singleton.gameObject);
         SceneManager.UnloadSceneAsync("TestMP");
+    }
+
+    private void NetworkManager_OnClientConnectedCallback(ulong clientid)
+    {
+        if (clientid > 1)
+            NetworkManager.Singleton.DisconnectClient(clientid);
+        else if (clientid == 1)
+        {
+            waitForSecondPlayer = false;
+        }
     }
 
 
     void Start()
     {
         if (!IsOwner) return;
+        waitForSecondPlayer = true;
         NetworkManager.Singleton.OnClientDisconnectCallback += NetworkManager_OnClientDisconnectCallback;
-        gamePaused = false;
+        NetworkManager.Singleton.OnClientConnectedCallback += NetworkManager_OnClientConnectedCallback;
+        gamePaused = true;
         pauseCanvas.gameObject.SetActive(false);
         pauseCamera.gameObject.SetActive(false);
+        hostWaitMenu.gameObject.SetActive(false);
         playerCamera.gameObject.SetActive(true);
         Cursor.lockState = CursorLockMode.Locked;
         mouseLook.mouseSensitivity = GetMouseSensitivity();
         joystickLook.joyLookSensitivity = GetJoystickLookSensitivity();
+        ShowHostWaitScreen();
     }
+
+    
+
     void Update()
     {
-        if (!IsOwner) return;
+        if (!IsOwner)
+            return;
+
+        if (waitForSecondPlayer && NetworkObject.OwnerClientId == 1)
+        {
+            waitForSecondPlayer = false;
+            return;
+        }
+
+        if (waitForSecondPlayer)
+        {
+            return;
+        }
+        else if (hostWaitMenu.activeSelf && !waitForSecondPlayer)
+        {
+            gamePaused = false;
+            pauseCanvas.gameObject.SetActive(false);
+            pauseCamera.gameObject.SetActive(false);
+            hostWaitMenu.SetActive(false);
+            playerCamera.gameObject.SetActive(true);
+            Cursor.lockState = CursorLockMode.Locked;
+            mouseLook.mouseSensitivity = GetMouseSensitivity();
+            joystickLook.joyLookSensitivity = GetJoystickLookSensitivity();
+            return;
+        }
+
         if (Input.GetKeyDown(KeyCode.Escape) || Input.GetButtonDown("Start"))
         {
             gamePaused = !gamePaused;
@@ -139,6 +207,7 @@ public class PauseNetwork : NetworkBehaviour
                 playerCamera.gameObject.SetActive(false);
                 pauseCanvas.gameObject.SetActive(true);
                 pauseCamera.gameObject.SetActive(true);
+                hostWaitMenu.SetActive(false);
                 settingsMenu.SetActive(false);
                 quitMenu.SetActive(false);
                 mainMenu.SetActive(true);

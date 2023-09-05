@@ -50,6 +50,7 @@ public class PlayerMovementNetwork : NetworkBehaviour
     public Camera playerCamera;
     public LayerMask clipCheckIgnore;
     public LayerMask groundCheckIgnore;
+    public LayerMask sizeChangeMask;
     public Canvas deathCanvas;
     public Image deathImage;
     public float playerSpeed;
@@ -314,6 +315,10 @@ public class PlayerMovementNetwork : NetworkBehaviour
             Vector3 sphere2 = transform.TransformPoint(collider.center) - transform.up * (collider.height * transform.localScale.x / 2 - collider.radius * transform.localScale.x - stepOffset);
 
             bool test = Physics.CapsuleCast(sphere1, sphere2, collider.radius * transform.localScale.x, transform.up, out _, collider.height * transform.localScale.x, ~clipCheckIgnore);
+            if (Physics.OverlapCapsule(sphere1, sphere2, collider.radius * transform.localScale.x * 2, ~sizeChangeMask).Length > 0)
+            {
+                test = true;
+            }
             if (nextSize == 0 || !test)
             {
                 sizeChanged = true;

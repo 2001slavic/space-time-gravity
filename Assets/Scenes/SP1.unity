@@ -68372,7 +68372,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 1696014694992928748, guid: d079cd0e6137a44b58864c3a91ad119a, type: 3}
       propertyPath: m_Layer
-      value: 0
+      value: 9
       objectReference: {fileID: 0}
     - target: {fileID: 1696014694992928748, guid: d079cd0e6137a44b58864c3a91ad119a, type: 3}
       propertyPath: m_TagString
@@ -68779,6 +68779,9 @@ MonoBehaviour:
   groundCheckIgnore:
     serializedVersion: 2
     m_Bits: 1040
+  sizeChangeMask:
+    serializedVersion: 2
+    m_Bits: 1552
   deathCanvas: {fileID: 1404710715}
   deathImage: {fileID: 1564418699}
   playerSpeed: 12
