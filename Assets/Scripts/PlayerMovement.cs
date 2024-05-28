@@ -53,12 +53,11 @@ public class PlayerMovement : MonoBehaviour
     public Canvas deathCanvas;
     public Image deathImage;
     public float playerSpeed;
-    public float playerGravityScale = 25f;
+    public float playerGravityScale = 9.8f;
     public bool isGrounded;
     private bool lastGrounded;
     public bool onGravityPanel;
     public Vector3 groundNormal;
-    public Vector3 input;
     public Animator animator;
     public float stepOffset;
     public float mass;
@@ -172,52 +171,13 @@ public class PlayerMovement : MonoBehaviour
         stepOffset = refStepOffset * transform.localScale.x;
     }
 
-    private void FixedUpdate()
+    private void OnDrawGizmos()
     {
-        // gravity
-        rb.AddForce(-groundNormal * playerGravityScale, ForceMode.Acceleration);
-
-        Vector3 direction = transform.TransformDirection(input) * playerSpeed * Time.fixedDeltaTime;
-        if (developerMode)
-        {
-            rb.MovePosition(rb.position + direction);
-            return;
-        }
-        float distance = direction.magnitude;
-
-        Vector3 sphere1 = transform.TransformPoint(collider.center) + transform.up * (collider.height * transform.localScale.x / 2 - collider.radius * transform.localScale.x);
-        Vector3 sphere2 = transform.TransformPoint(collider.center) - transform.up * (collider.height * transform.localScale.x / 2 - collider.radius * transform.localScale.x - stepOffset);
-
-        RaycastHit hit;
-        // prevent player from clipping through walls
-        if (Physics.CapsuleCast(sphere1, sphere2, collider.radius * transform.localScale.x, direction, out hit, distance, ~clipCheckIgnore))
-        {
-            Vector3 newPosition = rb.position + direction.normalized * hit.distance;
-            newPosition += hit.normal * 0.1f; // push away from the wall
-            rb.MovePosition(newPosition);
-        }
-        else
-        {
-            // If there is no hit, move normally
-            rb.MovePosition(rb.position + direction);
-        }
-
-        if (inWater)
-        {
-            rb.AddForce(groundNormal * buyoantForceScale, ForceMode.Acceleration);
-
-            if (Input.GetButton("Jump") && !isGrounded)
-            {
-                rb.velocity = Vector3.zero;
-                rb.MovePosition(rb.position + transform.up * swimUpScale * Time.fixedDeltaTime);
-            }
-            else if (Input.GetButton("SwimDown")  && !isGrounded)
-            {
-                rb.MovePosition(rb.position - transform.up * swimUpScale * Time.fixedDeltaTime);
-            }
-        }
-        
+        Gizmos.color = Color.yellow;
+        Gizmos.DrawSphere(transform.TransformPoint(collider.center) - transform.up * ((collider.height * transform.localScale.x / 2) - (collider.radius * transform.localScale.x)), collider.radius * transform.localScale.x);
+        //Gizmos.DrawSphere(transform.TransformPoint(collider.center) - transform.up * ((collider.height * transform.localScale.x / 2) - (collider.radius * transform.localScale.x) - 0.1f), collider.radius * transform.localScale.x);
     }
+
     void Start()
     {
         rb = GetComponent<Rigidbody>();
@@ -256,10 +216,12 @@ public class PlayerMovement : MonoBehaviour
 
     void Update()
     {
+        Vector3 sphere1;
+        Vector3 sphere2;
+        RaycastHit hit;
         if (developerMode)
         {
-            input = new Vector3(Input.GetAxis("Horizontal"), 0, Input.GetAxis("Vertical"));
-            RaycastHit hit;
+            Vector3 input = new Vector3(Input.GetAxis("Horizontal"), 0, Input.GetAxis("Vertical"));
             if (Input.GetMouseButtonDown(0))
             {
                 Physics.Raycast(playerCamera.transform.position, playerCamera.transform.forward, out hit);
@@ -290,8 +252,8 @@ public class PlayerMovement : MonoBehaviour
             else
                 nextSize++;
 
-            Vector3 sphere1 = transform.TransformPoint(collider.center) + transform.up * (collider.height * transform.localScale.x / 2 - collider.radius * transform.localScale.x);
-            Vector3 sphere2 = transform.TransformPoint(collider.center) - transform.up * (collider.height * transform.localScale.x / 2 - collider.radius * transform.localScale.x - stepOffset);
+            sphere1 = transform.TransformPoint(collider.center) + transform.up * (collider.height * transform.localScale.x / 2 - collider.radius * transform.localScale.x);
+            sphere2 = transform.TransformPoint(collider.center) - transform.up * (collider.height * transform.localScale.x / 2 - collider.radius * transform.localScale.x - stepOffset);
 
             bool test = Physics.CapsuleCast(sphere1, sphere2, collider.radius * transform.localScale.x, transform.up, out _, collider.height * transform.localScale.x, ~clipCheckIgnore);
             if (Physics.OverlapCapsule(sphere1, sphere2, collider.radius * transform.localScale.x * 2, ~sizeChangeMask).Length > 0)
@@ -311,8 +273,8 @@ public class PlayerMovement : MonoBehaviour
             ResetPlayerStats();
         }
 
-        Vector3 groundCast = transform.TransformPoint(collider.center) - transform.up * ((collider.height * transform.localScale.x / 2) - collider.radius - 0.1f);
-        isGrounded = Physics.SphereCast(groundCast, collider.radius, -groundNormal, out groundHit, 0.2f, ~groundCheckIgnore);
+        Vector3 groundCast = transform.TransformPoint(collider.center) - transform.up * ((collider.height * transform.localScale.x / 2) - (collider.radius * transform.localScale.x) - 0.1f);
+        isGrounded = Physics.SphereCast(groundCast, collider.radius * transform.localScale.x - 0.2f, -groundNormal, out groundHit, 0.4f, ~groundCheckIgnore);
 
         if (isGrounded && !lastGrounded && !inWater)
         {
@@ -388,7 +350,59 @@ public class PlayerMovement : MonoBehaviour
             clampedInput.x *= 0.75f;
         }
 
-        input = clampedInput;
+        // gravity
+        rb.AddForce(-groundNormal * playerGravityScale, ForceMode.Acceleration);
+
+
+        if (inWater)
+        {
+            rb.AddForce(groundNormal * buyoantForceScale, ForceMode.Acceleration);
+
+            if (Input.GetButton("Jump") && !isGrounded)
+            {
+                rb.velocity = Vector3.zero;
+                rb.MovePosition(rb.position + transform.up * swimUpScale * Time.deltaTime);
+            }
+            else if (Input.GetButton("SwimDown") && !isGrounded)
+            {
+                rb.MovePosition(rb.position - transform.up * swimUpScale * Time.deltaTime);
+            }
+        }
+
+        float distance = collider.radius * transform.localScale.x + 0.01f;
+
+        sphere1 = transform.TransformPoint(collider.center) + transform.up * (collider.height * transform.localScale.x / 2 - collider.radius * transform.localScale.x);
+        sphere2 = transform.TransformPoint(collider.center) - transform.up * (collider.height * transform.localScale.x / 2 - collider.radius * transform.localScale.x);
+
+
+        Vector3 direction = transform.TransformDirection(clampedInput) * playerSpeed;
+        bool facingObstacle = Physics.CapsuleCast(sphere1, sphere2, collider.radius * transform.localScale.x, direction, out hit, distance, ~clipCheckIgnore);
+        // player step up on stairs
+        if (facingObstacle)
+        {
+            Vector3 stepSphere = transform.TransformPoint(collider.center) - transform.up * ((collider.height * transform.localScale.x / 2) - (collider.radius * transform.localScale.x) - stepOffset);
+            bool cannotStepUp = Physics.CapsuleCast(sphere1, stepSphere, collider.radius * transform.localScale.x, direction, out _, distance, ~clipCheckIgnore);
+            if (!cannotStepUp && hit.transform.gameObject.layer == LayerMask.NameToLayer("Stairs"))
+            {
+                rb.position += direction.normalized * 0.05f + groundNormal * 0.05f;
+            }
+        }
+
+        // Calculate the velocity parallel to the up vector
+        Vector3 parallelVelocity = Vector3.Dot(rb.velocity, groundNormal) * groundNormal;
+
+        // Calculate the velocity perpendicular to the up vector
+        Vector3 perpendicularVelocity = rb.velocity - parallelVelocity;
+
+        // Clamp the magnitude of the perpendicular velocity
+        perpendicularVelocity = Vector3.ClampMagnitude(perpendicularVelocity, playerSpeed);
+
+        // Reconstruct the total velocity by adding the clamped perpendicular velocity to the parallel velocity
+        rb.velocity = perpendicularVelocity + parallelVelocity;
+
+        // Apply the force
+        rb.velocity += direction;
+
 
         isWalking = false;
         isRunning = false;
