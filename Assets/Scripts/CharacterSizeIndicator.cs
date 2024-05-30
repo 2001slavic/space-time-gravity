@@ -5,7 +5,7 @@ using UnityEngine.UI;
 
 public class CharacterSizeIndicator : MonoBehaviour
 {
-    public PlayerMovement playerMovement;
+    public SizeControl sizeControl;
 
     public Color activeColor;
     public Color inactiveColor;
@@ -21,7 +21,7 @@ public class CharacterSizeIndicator : MonoBehaviour
 
     void Update()
     {
-        switch (playerMovement.curSize)
+        switch (sizeControl.size)
         {
             case 0:
                 smallImage.color = activeColor;

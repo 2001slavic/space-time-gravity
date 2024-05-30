@@ -18,7 +18,6 @@ public class PlayerMovement : MonoBehaviour
     [SerializeField]
     private readonly float devModeSpeed;
 
-    private readonly float refStepOffset = 0.7f;
     [SerializeField]
     private float handLength = 1.5f;
 
@@ -29,8 +28,6 @@ public class PlayerMovement : MonoBehaviour
     private bool lastCheckpointRewindState;
     private float lastCheckpointEffectTime;
     private Vector3 lastCheckpointGroundNormal;
-
-    private bool sizeChanged;
 
     [SerializeField]
     private readonly float buyoantForceScale = 24.75f;
@@ -60,15 +57,12 @@ public class PlayerMovement : MonoBehaviour
     [SerializeField]
     private LayerMask groundCheckIgnore;
     [SerializeField]
-    private LayerMask sizeChangeMask;
-    [SerializeField]
     private Canvas deathCanvas;
     [SerializeField]
     private Image deathImage;
+    public float playerSpeed;
     [SerializeField]
-    private float playerSpeed;
-    [SerializeField]
-    private float playerGravityScale = 9.8f;
+    private float playerGravityScale;
     [SerializeField]
     private bool isGrounded;
     private bool lastGrounded;
@@ -77,11 +71,8 @@ public class PlayerMovement : MonoBehaviour
     [SerializeField]
     private Vector3 groundNormal;
     private Animator animator;
-    [SerializeField]
-    private float stepOffset;
-    [SerializeField]
-    private float jumpForce;
-    public int curSize;
+    public float stepOffset;
+    public float jumpForce;
 
     [SerializeField]
     private float footStepTime = 0.25f;
@@ -118,13 +109,6 @@ public class PlayerMovement : MonoBehaviour
             { "Run Forwards"        , 10 },
             { "Run Forwards Right"  , 11 },
             { "Falling"             , 13 }
-    };
-
-    private readonly Dictionary<int, float> sizeToScale = new()
-    {
-        { 0, 0.5f },
-        { 1, 1.0f },
-        { 2, 2.0f },
     };
 
     private void OnTriggerEnter(Collider other)
@@ -171,33 +155,6 @@ public class PlayerMovement : MonoBehaviour
         }
     }
 
-    private void ResetPlayerStats()
-    {
-
-        switch (curSize)
-        {
-            case 0:
-                transform.localScale = new Vector3(0.5f, 0.5f, 0.5f);
-                rb.mass = 1;
-                playerSpeed = 4;
-                jumpForce = 12.5f;
-                break;
-            case 1:
-                transform.localScale = new Vector3(1, 1, 1);
-                rb.mass = 2;
-                playerSpeed = 8;
-                jumpForce = 25;
-                break;
-            case 2:
-                transform.localScale = new Vector3(2, 2, 2);
-                rb.mass = 8;
-                playerSpeed = 12;
-                jumpForce = 100;
-                break;
-        }
-        stepOffset = refStepOffset * transform.localScale.x;
-    }
-
     private void HandleDeveloperMovement()
     {
         Vector3 input = new Vector3(Input.GetAxis("Horizontal"), 0, Input.GetAxis("Vertical"));
@@ -223,39 +180,6 @@ public class PlayerMovement : MonoBehaviour
             rb.MovePosition(transform.position - transform.up * devModeSpeed);
         }
         return;
-    }
-
-    private void HandleSizeChange()
-    {
-        if (!Input.GetButtonDown("SizeChange"))
-        {
-            return;
-        }
-        int nextSize = curSize;
-        if (nextSize == 2)
-            nextSize = 0;
-        else
-            nextSize++;
-
-        Vector3 sphere1 = transform.TransformPoint(collider.center) + transform.up * (collider.height * transform.localScale.x / 2 - collider.radius * transform.localScale.x); ;
-        Vector3 sphere2 = transform.TransformPoint(collider.center) - transform.up * (collider.height * transform.localScale.x / 2 - collider.radius * transform.localScale.x - stepOffset); ;
-
-        bool test = Physics.CapsuleCast(sphere1, sphere2, collider.radius * transform.localScale.x, transform.up, out _, collider.height * transform.localScale.x, ~clipCheckIgnore);
-        if (Physics.OverlapCapsule(sphere1, sphere2, collider.radius * transform.localScale.x * 2, ~sizeChangeMask).Length > 0)
-        {
-            test = true;
-        }
-        if (nextSize == 0 || !test)
-        {
-            sizeChanged = true;
-            curSize = nextSize;
-
-        }
-        else
-        {
-            curSize = 0;
-        }
-        ResetPlayerStats();
     }
 
     private bool GroundCheck(out RaycastHit groundHit)
@@ -289,6 +213,12 @@ public class PlayerMovement : MonoBehaviour
 
     private void Jump()
     {
+        //if (isGrounded)
+        //{
+        //    Vector3 velocityAlongNormal = Vector3.Project(rb.velocity, groundNormal);
+        //    rb.velocity -= velocityAlongNormal;
+        //}
+        
         if (!isGrounded || !Input.GetButtonDown("Jump"))
         {
             return;
@@ -300,6 +230,7 @@ public class PlayerMovement : MonoBehaviour
             audioSource.Play();
         }
         rb.AddForce(groundNormal * jumpForce, ForceMode.Impulse);
+        isGrounded = false;
     }
 
     private void ApplyGravity(float scale)
@@ -318,7 +249,7 @@ public class PlayerMovement : MonoBehaviour
         rawInput = new Vector3(Input.GetAxis("Horizontal"), 0, Input.GetAxis("Vertical"));
         normalizedInput = rawInput.normalized;
 
-        if (rawInput.z < 0 || Input.GetKey(KeyCode.LeftShift))
+        if (rawInput.z < 0 || Input.GetButton("Walk"))
         {
             clampedInput = Vector3.ClampMagnitude(rawInput, 0.5f);
         }
@@ -350,7 +281,7 @@ public class PlayerMovement : MonoBehaviour
     }
 
     // Moves player without affecting in-air velocity
-    private void Move(Vector3 direction)
+    private void Move(Vector3 direction, float speed)
     {
         // Calculate the velocity parallel to the up vector
         Vector3 parallelVelocity = Vector3.Dot(rb.velocity, groundNormal) * groundNormal;
@@ -359,13 +290,13 @@ public class PlayerMovement : MonoBehaviour
         Vector3 perpendicularVelocity = rb.velocity - parallelVelocity;
 
         // Clamp the magnitude of the perpendicular velocity
-        perpendicularVelocity = Vector3.ClampMagnitude(perpendicularVelocity, playerSpeed);
+        perpendicularVelocity = Vector3.ClampMagnitude(perpendicularVelocity, speed);
 
         // Reconstruct the total velocity by adding the clamped perpendicular velocity to the parallel velocity
         rb.velocity = perpendicularVelocity + parallelVelocity;
 
         // Apply the force
-        rb.velocity += direction;
+        rb.velocity += direction * speed;
     }
 
     private void HandleAnimations(Vector3 normalizedInput, Vector3 clampedInput)
@@ -533,44 +464,43 @@ public class PlayerMovement : MonoBehaviour
         curFootStepTime = footStepTime;
     }
 
-    void HandleWaterEnterAndExit()
-    {
-        if (inWater)
-        {
-            if (sizeChanged)
-                enteredWater = false;
-            if (!enteredWater)
-            {
-                rb.AddForce(groundNormal * rb.velocity.magnitude * 0.5f, ForceMode.Impulse);
-                playerSpeed /= 2;
-                enteredWater = true;
-            }
-        }
-        else
-        {
-            if (enteredWater)
-            {
-                if (Input.GetButton("Jump"))
-                {
-                    rb.AddForce(groundNormal * jumpForce, ForceMode.Impulse);
-                }
-                ResetPlayerStats();
-            }
+    //void HandleWaterEnterAndExit()
+    //{
+    //    if (inWater)
+    //    {
+    //        if (sizeChanged)
+    //            enteredWater = false;
+    //        if (!enteredWater)
+    //        {
+    //            rb.AddForce(groundNormal * rb.velocity.magnitude * 0.5f, ForceMode.Impulse);
+    //            playerSpeed /= 2;
+    //            enteredWater = true;
+    //        }
+    //    }
+    //    else
+    //    {
+    //        if (enteredWater)
+    //        {
+    //            if (Input.GetButton("Jump"))
+    //            {
+    //                rb.AddForce(groundNormal * jumpForce, ForceMode.Impulse);
+    //            }
+    //            //ResetPlayerStats();
+    //        }
 
-            enteredWater = false;
-        }
-    }
+    //        enteredWater = false;
+    //    }
+    //}
     void Start()
     {
         rb = GetComponent<Rigidbody>();
         collider = GetComponent<CapsuleCollider>();
         animator = GetComponent<Animator>();
         timeControl = GetComponent<TimeControl>();
+        SizeControl sizeControl = GetComponent<SizeControl>();
+        sizeControl.ResetPlayerStats();
 
-        curSize = 1;
-        ResetPlayerStats();
         developerMode = false;
-
 
         deathFadePhase = 0;
 
@@ -582,9 +512,10 @@ public class PlayerMovement : MonoBehaviour
         inWater = false;
         enteredWater = false;
         kill = false;
-        sizeChanged = false;
         lastGrounded = true;
         isGrounded = false;
+
+        playerGravityScale = 30;
 
         deathCanvas.gameObject.SetActive(false);
 
@@ -605,24 +536,20 @@ public class PlayerMovement : MonoBehaviour
         isGrounded = GroundCheck(out RaycastHit groundHit);
         isOnGravityPanel = HandleGravityPanel(groundHit);
 
-        HandleSizeChange();
-
         PlayLandClip();
 
-        HandleWaterEnterAndExit();
+        //HandleWaterEnterAndExit();
 
         Jump();
 
         GetInput(out _, out Vector3 normalizedInput, out Vector3 clampedInput);
 
-        ApplyGravity(playerGravityScale);
-
         HandleWaterVerticalMovement();
 
-        Vector3 direction = transform.TransformDirection(clampedInput) * playerSpeed;
+        Vector3 direction = transform.TransformDirection(clampedInput).normalized;
 
         HandleStepUpStairs(direction);
-        Move(direction);
+        Move(direction, playerSpeed * clampedInput.magnitude);
 
         HandleAnimations(normalizedInput, clampedInput);
 
@@ -633,7 +560,10 @@ public class PlayerMovement : MonoBehaviour
         PlayFootsepsClip();
 
         curFootStepTime -= Time.deltaTime;
-        sizeChanged = false;
-        lastGrounded = isGrounded;
+    }
+
+    private void FixedUpdate()
+    {
+        ApplyGravity(playerGravityScale);
     }
 }
