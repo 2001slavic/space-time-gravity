@@ -16,7 +16,7 @@ public class PlayerMovement : MonoBehaviour
     [SerializeField]
     private bool developerMode;
     [SerializeField]
-    private readonly float devModeSpeed;
+    private float devModeSpeed;
 
     [SerializeField]
     private float handLength = 1.5f;
@@ -30,20 +30,21 @@ public class PlayerMovement : MonoBehaviour
     private Vector3 lastCheckpointGroundNormal;
 
     [SerializeField]
-    private readonly float buyoantForceScale = 24.75f;
+    private float buoyantForceScale;
     [SerializeField]
-    private readonly float swimUpScale = 5;
+    private float swimUpScale;
 
     [SerializeField]
     private bool lastOnGravityPanel;
-    [SerializeField]
-    private bool isWalking;
-    [SerializeField]
-    private bool isRunning;
-    [SerializeField]
-    private bool inWater;
+    [HideInInspector]
+    public bool isWalking;
+    [HideInInspector]
+    public bool isRunning;
     [SerializeField]
     private bool enteredWater;
+
+    [SerializeField]
+    private BuoyantForce buoyantForce;
 
     [SerializeField]
     private bool kill;
@@ -53,30 +54,27 @@ public class PlayerMovement : MonoBehaviour
     public TimeControl timeControl;
     public Camera playerCamera;
     [SerializeField]
-    private LayerMask clipCheckIgnore;
-    [SerializeField]
     private LayerMask groundCheckIgnore;
     [SerializeField]
     private Canvas deathCanvas;
     [SerializeField]
     private Image deathImage;
     public float playerSpeed;
-    [SerializeField]
-    private float playerGravityScale;
-    [SerializeField]
-    private bool isGrounded;
-    private bool lastGrounded;
+    public bool isGrounded;
+    public bool lastGrounded;
     [SerializeField]
     private bool isOnGravityPanel;
-    [SerializeField]
-    private Vector3 groundNormal;
-    private Animator animator;
+    [HideInInspector]
+    public Vector3 groundNormal;
     public float stepOffset;
     public float jumpForce;
 
-    [SerializeField]
-    private float footStepTime = 0.25f;
-    private float curFootStepTime;
+    [HideInInspector]
+    public Vector3 rawInput;
+    [HideInInspector]
+    public Vector3 normalizedInput;
+    [HideInInspector]
+    public Vector3 clampedInput;
 
     private int deathFadePhase;
     [SerializeField]
@@ -84,40 +82,12 @@ public class PlayerMovement : MonoBehaviour
     [SerializeField]
     private AudioClip electrocutionAudio;
     [SerializeField]
-    private AudioClip[] footstepsClips;
-    [SerializeField]
     private AudioClip[] jumpClips;
     [SerializeField]
     private AudioClip[] landClips;
-    [SerializeField]
-    private AudioClip enterWater;
-    [SerializeField]
-    private AudioClip exitWater;
-
-    private readonly Dictionary<string, int> animStates = new()
-    {
-            { "Idle"                , 0  },
-            { "Walk Forwards"       , 1  },
-            { "Walk Forwards Right" , 2  },
-            { "Strafe Right"        , 3  },
-            { "Walk Backwards Right", 4  },
-            { "Walk Backwards"      , 5  },
-            { "Walk Backwards Left" , 6  },
-            { "Strafe Left"         , 7  },
-            { "Walk Forwards Left"  , 8  },
-            { "Run Forwards Left"   , 9  },
-            { "Run Forwards"        , 10 },
-            { "Run Forwards Right"  , 11 },
-            { "Falling"             , 13 }
-    };
 
     private void OnTriggerEnter(Collider other)
     {
-        if (other.GetComponent<Collider>().gameObject.layer == LayerMask.NameToLayer("Water"))
-        {
-            AudioSource.PlayClipAtPoint(enterWater, transform.position, PlayerPrefs.GetFloat("volume", 0.5f));
-            inWater = true;
-        }
         if (other.CompareTag("Checkpoint"))
         {
             lastCheckpointPosition = transform.position;
@@ -146,18 +116,10 @@ public class PlayerMovement : MonoBehaviour
         }
     }
 
-    private void OnTriggerExit(Collider other)
-    {
-        if (other.GetComponent<Collider>().gameObject.layer == LayerMask.NameToLayer("Water"))
-        {
-            AudioSource.PlayClipAtPoint(exitWater, transform.position, PlayerPrefs.GetFloat("volume", 0.5f));
-            inWater = false;
-        }
-    }
-
     private void HandleDeveloperMovement()
     {
         Vector3 input = new Vector3(Input.GetAxis("Horizontal"), 0, Input.GetAxis("Vertical"));
+        rb.MovePosition(rb.position + transform.TransformDirection(input) * devModeSpeed);
         RaycastHit hit;
         if (Input.GetMouseButtonDown(0))
         {
@@ -179,7 +141,6 @@ public class PlayerMovement : MonoBehaviour
         {
             rb.MovePosition(transform.position - transform.up * devModeSpeed);
         }
-        return;
     }
 
     private bool GroundCheck(out RaycastHit groundHit)
@@ -212,30 +173,28 @@ public class PlayerMovement : MonoBehaviour
     }
 
     private void Jump()
-    {
-        //if (isGrounded)
-        //{
-        //    Vector3 velocityAlongNormal = Vector3.Project(rb.velocity, groundNormal);
-        //    rb.velocity -= velocityAlongNormal;
-        //}
-        
+    {   
         if (!isGrounded || !Input.GetButtonDown("Jump"))
         {
             return;
         }
-        if (!inWater)
+        if (!buoyantForce.inWater)
         {
             audioSource.clip = jumpClips[UnityEngine.Random.Range((int)0, jumpClips.Length)];
             audioSource.volume = PlayerPrefs.GetFloat("volume", 0.5f) * 0.1f;
             audioSource.Play();
         }
         rb.AddForce(groundNormal * jumpForce, ForceMode.Impulse);
-        isGrounded = false;
     }
 
-    private void ApplyGravity(float scale)
+    private void ApplyBuoyantForce(float scale)
     {
-        rb.AddForce(-groundNormal * scale, ForceMode.Acceleration);
+        if (!buoyantForce.inWater)
+        {
+            return;
+        }
+
+        rb.AddForce(groundNormal * scale, ForceMode.Acceleration);
     }
 
     /// <summary>
@@ -244,7 +203,7 @@ public class PlayerMovement : MonoBehaviour
     /// <param name="rawInput">Vector3 of input as got from Input.GetAxis()</param>
     /// <param name="normalizedInput">Normalized rawInput</param>
     /// <param name="clampedInput">Clamped input so player strafes and moves backwards slower.</param>
-    private void GetInput(out Vector3 rawInput, out Vector3 normalizedInput, out Vector3 clampedInput)
+    private void GetInput()
     {
         rawInput = new Vector3(Input.GetAxis("Horizontal"), 0, Input.GetAxis("Vertical"));
         normalizedInput = rawInput.normalized;
@@ -267,12 +226,12 @@ public class PlayerMovement : MonoBehaviour
         Vector3 sphere1 = transform.TransformPoint(collider.center) + transform.up * (collider.height * transform.localScale.x / 2 - collider.radius * transform.localScale.x);
         Vector3 sphere2 = transform.TransformPoint(collider.center) - transform.up * (collider.height * transform.localScale.x / 2 - collider.radius * transform.localScale.x);
 
-        bool facingObstacle = Physics.CapsuleCast(sphere1, sphere2, collider.radius * transform.localScale.x, direction, out RaycastHit hit, distance, ~clipCheckIgnore);
+        bool facingObstacle = Physics.CapsuleCast(sphere1, sphere2, collider.radius * transform.localScale.x, direction, out RaycastHit hit, distance, ~groundCheckIgnore);
         // player step up on stairs
         if (facingObstacle)
         {
             Vector3 stepSphere = transform.TransformPoint(collider.center) - transform.up * ((collider.height * transform.localScale.x / 2) - (collider.radius * transform.localScale.x) - stepOffset);
-            bool cannotStepUp = Physics.CapsuleCast(sphere1, stepSphere, collider.radius * transform.localScale.x, direction, out _, distance, ~clipCheckIgnore);
+            bool cannotStepUp = Physics.CapsuleCast(sphere1, stepSphere, collider.radius * transform.localScale.x, direction, out _, distance, ~groundCheckIgnore);
             if (!cannotStepUp && hit.transform.gameObject.layer == LayerMask.NameToLayer("Stairs"))
             {
                 rb.position += direction.normalized * 0.05f + groundNormal * 0.05f;
@@ -280,7 +239,7 @@ public class PlayerMovement : MonoBehaviour
         }
     }
 
-    // Moves player without affecting in-air velocity
+    // Moves player without affecting jump velocity
     private void Move(Vector3 direction, float speed)
     {
         // Calculate the velocity parallel to the up vector
@@ -295,56 +254,13 @@ public class PlayerMovement : MonoBehaviour
         // Reconstruct the total velocity by adding the clamped perpendicular velocity to the parallel velocity
         rb.velocity = perpendicularVelocity + parallelVelocity;
 
+        if (buoyantForce.inWater)
+        {
+            speed *= 0.5f;
+        }
+
         // Apply the force
         rb.velocity += direction * speed;
-    }
-
-    private void HandleAnimations(Vector3 normalizedInput, Vector3 clampedInput)
-    {
-        isWalking = false;
-        isRunning = false;
-
-        if (clampedInput.magnitude > 0 && clampedInput.magnitude <= 0.5)
-            isWalking = true;
-        else if (clampedInput.magnitude > 0.5)
-            isRunning = true;
-
-        if (!isGrounded)
-            animator.SetInteger("currentState", animStates["Falling"]);
-        else if (isWalking)
-        {
-            if (normalizedInput.z >= 0.85)
-                animator.SetInteger("currentState", animStates["Walk Forwards"]);
-            else if (normalizedInput.z < 0.85 && normalizedInput.z >= 0.35 && normalizedInput.x > 0)
-                animator.SetInteger("currentState", animStates["Walk Forwards Right"]);
-            else if (normalizedInput.z < 0.35 && normalizedInput.z >= -0.35 && normalizedInput.x > 0)
-                animator.SetInteger("currentState", animStates["Strafe Right"]);
-            else if (normalizedInput.z < -0.35 && normalizedInput.z >= -0.85 && normalizedInput.x > 0)
-                animator.SetInteger("currentState", animStates["Walk Backwards Right"]);
-            else if (normalizedInput.z < -0.85)
-                animator.SetInteger("currentState", animStates["Walk Backwards"]);
-            else if (normalizedInput.z >= -0.85 && normalizedInput.z <= -0.35 && normalizedInput.x < 0)
-                animator.SetInteger("currentState", animStates["Walk Backwards Left"]);
-            else if (normalizedInput.z > -0.35 && normalizedInput.z <= 0.35 && normalizedInput.x < 0)
-                animator.SetInteger("currentState", animStates["Strafe Left"]);
-            else if (normalizedInput.z > 0.35 && normalizedInput.z < 0.85 && normalizedInput.x < 0)
-                animator.SetInteger("currentState", animStates["Walk Forwards Left"]);
-        }
-        else if (isRunning)
-        {
-            if (normalizedInput.z >= 0.85)
-                animator.SetInteger("currentState", animStates["Run Forwards"]);
-            else if (normalizedInput.z < 0.85 && normalizedInput.z >= 0.35 && normalizedInput.x > 0)
-                animator.SetInteger("currentState", animStates["Run Forwards Right"]);
-            else if (normalizedInput.z > 0.35 && normalizedInput.z < 0.85 && normalizedInput.x < 0)
-                animator.SetInteger("currentState", animStates["Run Forwards Left"]);
-            else if (normalizedInput.z > -0.35 && normalizedInput.z <= 0.35 && normalizedInput.x < 0)
-                animator.SetInteger("currentState", animStates["Strafe Left"]);
-            else if (normalizedInput.z < 0.35 && normalizedInput.z >= -0.35 && normalizedInput.x > 0)
-                animator.SetInteger("currentState", animStates["Strafe Right"]);
-        }
-        else
-            animator.SetInteger("currentState", animStates["Idle"]);
     }
 
     private void HandleDeath()
@@ -392,115 +308,98 @@ public class PlayerMovement : MonoBehaviour
 
     private void PlayLandClip()
     {
-        if (!isGrounded || lastGrounded || inWater)
+        if (!isGrounded || lastGrounded || buoyantForce.inWater)
         {
             return;
         }
         audioSource.clip = landClips[UnityEngine.Random.Range((int)0, landClips.Length)];
         audioSource.volume = PlayerPrefs.GetFloat("volume", 0.5f) * 0.1f;
         audioSource.Play();
+
     }
 
-    private void HandleInteraction()
-    {
-        if (!Input.GetButtonDown("Use"))
-        {
-            return;
-        }
-        RaycastHit[] handHit = Physics.RaycastAll(playerCamera.transform.position, playerCamera.transform.forward, handLength, ~clipCheckIgnore);
-        float minDistance = Mathf.Infinity;
-        int minIndex = -1;
-        for (int i = 0; i < handHit.Length; i++)
-        {
-            if (handHit[i].distance < minDistance)
-            {
-                minDistance = handHit[i].distance;
-                minIndex = i;
-            }
-            else if (handHit[i].distance == minDistance && handHit[i].collider.CompareTag("Button"))
-            {
-                minDistance = handHit[i].distance;
-                minIndex = i;
-            }
-        }
-        if (minIndex != -1)
-        {
-            Debug.Log(handHit[minIndex].collider.gameObject.name);
-        }
-        if (minIndex != -1 && handHit[minIndex].collider.CompareTag("Button"))
-        {
-            handHit[minIndex].collider.gameObject.GetComponent<GameButton>().pressed = true;
-        }
-    }
+    //private void HandleInteraction()
+    //{
+    //    if (!Input.GetButtonDown("Use"))
+    //    {
+    //        return;
+    //    }
+    //    RaycastHit[] handHit = Physics.RaycastAll(playerCamera.transform.position, playerCamera.transform.forward, handLength, ~clipCheckIgnore);
+    //    float minDistance = Mathf.Infinity;
+    //    int minIndex = -1;
+    //    for (int i = 0; i < handHit.Length; i++)
+    //    {
+    //        if (handHit[i].distance < minDistance)
+    //        {
+    //            minDistance = handHit[i].distance;
+    //            minIndex = i;
+    //        }
+    //        else if (handHit[i].distance == minDistance && handHit[i].collider.CompareTag("Button"))
+    //        {
+    //            minDistance = handHit[i].distance;
+    //            minIndex = i;
+    //        }
+    //    }
+    //    if (minIndex != -1)
+    //    {
+    //        Debug.Log(handHit[minIndex].collider.gameObject.name);
+    //    }
+    //    if (minIndex != -1 && handHit[minIndex].collider.CompareTag("Button"))
+    //    {
+    //        handHit[minIndex].collider.gameObject.GetComponent<GameButton>().pressed = true;
+    //    }
+    //}
 
     private void HandleWaterVerticalMovement()
     {
-        if (!inWater)
+        if (!buoyantForce.inWater || isGrounded)
         {
             return;
         }
-        rb.AddForce(groundNormal * buyoantForceScale, ForceMode.Acceleration);
 
-        if (Input.GetButton("Jump") && !isGrounded)
+        Vector3 addedVelocity = Vector3.zero;
+
+        if (Input.GetButton("Jump"))
         {
-            rb.velocity = Vector3.zero;
-            rb.MovePosition(rb.position + transform.up * swimUpScale * Time.deltaTime);
+            addedVelocity += groundNormal * swimUpScale;
         }
-        else if (Input.GetButton("SwimDown") && !isGrounded)
+        else if (Input.GetButton("SwimDown"))
         {
-            rb.MovePosition(rb.position - transform.up * swimUpScale * Time.deltaTime);
+            addedVelocity += -groundNormal * swimUpScale;
         }
+
+        // Calculate the new velocity but clamp it to swimUpScale
+        Vector3 newVelocity = rb.velocity + addedVelocity;
+        rb.velocity = Vector3.ClampMagnitude(newVelocity, swimUpScale);
     }
 
-    private void PlayFootsepsClip()
+    void JumpOutOfWater()
     {
-        if (!isGrounded || !isRunning || inWater || curFootStepTime > 0)
+        if (isGrounded || buoyantForce.inWater || !enteredWater || !Input.GetButton("Jump"))
         {
             return;
         }
-        audioSource.clip = footstepsClips[UnityEngine.Random.Range((int)0, footstepsClips.Length)];
-        audioSource.volume = PlayerPrefs.GetFloat("volume", 0.5f) * 0.1f;
-        audioSource.Play();
-        curFootStepTime = footStepTime;
+        rb.AddForce(groundNormal * jumpForce * 0.5f, ForceMode.Impulse);
     }
 
-    //void HandleWaterEnterAndExit()
-    //{
-    //    if (inWater)
-    //    {
-    //        if (sizeChanged)
-    //            enteredWater = false;
-    //        if (!enteredWater)
-    //        {
-    //            rb.AddForce(groundNormal * rb.velocity.magnitude * 0.5f, ForceMode.Impulse);
-    //            playerSpeed /= 2;
-    //            enteredWater = true;
-    //        }
-    //    }
-    //    else
-    //    {
-    //        if (enteredWater)
-    //        {
-    //            if (Input.GetButton("Jump"))
-    //            {
-    //                rb.AddForce(groundNormal * jumpForce, ForceMode.Impulse);
-    //            }
-    //            //ResetPlayerStats();
-    //        }
-
-    //        enteredWater = false;
-    //    }
-    //}
+    private void Outro()
+    {
+        lastGrounded = isGrounded;
+        enteredWater = buoyantForce.inWater;
+    }
     void Start()
     {
         rb = GetComponent<Rigidbody>();
         collider = GetComponent<CapsuleCollider>();
-        animator = GetComponent<Animator>();
         timeControl = GetComponent<TimeControl>();
+        buoyantForce = GetComponent<BuoyantForce>();
         SizeControl sizeControl = GetComponent<SizeControl>();
+        
+
         sizeControl.ResetPlayerStats();
 
         developerMode = false;
+        devModeSpeed = 0.3f;
 
         deathFadePhase = 0;
 
@@ -509,22 +408,21 @@ public class PlayerMovement : MonoBehaviour
         lastOnGravityPanel = false;
         isRunning = false;
         isWalking = false;
-        inWater = false;
+        buoyantForce.inWater = false;
         enteredWater = false;
         kill = false;
         lastGrounded = true;
         isGrounded = false;
 
-        playerGravityScale = 30;
+        buoyantForceScale = 25;
+        swimUpScale = 5;
 
-        deathCanvas.gameObject.SetActive(false);
-
-        curFootStepTime = footStepTime;
+        //deathCanvas.gameObject.SetActive(false);
 
         audioSource = GetComponent<AudioSource>();
         audioSource.volume = PlayerPrefs.GetFloat("volume", 0.5f) * 0.1f;
 
-    }
+}
     void Update()
     {
         if (developerMode)
@@ -536,13 +434,13 @@ public class PlayerMovement : MonoBehaviour
         isGrounded = GroundCheck(out RaycastHit groundHit);
         isOnGravityPanel = HandleGravityPanel(groundHit);
 
-        PlayLandClip();
+        PlayLandClip(); // cannot or difficult to separate
 
-        //HandleWaterEnterAndExit();
+        JumpOutOfWater();
 
         Jump();
 
-        GetInput(out _, out Vector3 normalizedInput, out Vector3 clampedInput);
+        GetInput();
 
         HandleWaterVerticalMovement();
 
@@ -551,19 +449,18 @@ public class PlayerMovement : MonoBehaviour
         HandleStepUpStairs(direction);
         Move(direction, playerSpeed * clampedInput.magnitude);
 
-        HandleAnimations(normalizedInput, clampedInput);
+        //HandleDeath();
 
-        HandleDeath();
+        //HandleInteraction();
 
-        HandleInteraction();
-
-        PlayFootsepsClip();
-
-        curFootStepTime -= Time.deltaTime;
+        Outro();
     }
 
-    private void FixedUpdate()
+    void FixedUpdate()
     {
-        ApplyGravity(playerGravityScale);
+        if (developerMode)
+        {
+            return;
+        }
     }
 }

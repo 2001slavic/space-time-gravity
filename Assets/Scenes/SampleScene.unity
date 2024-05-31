@@ -750,6 +750,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   groundNormal: {x: -1, y: 0, z: 0}
   scale: 4.9
+  playerMovement: {fileID: 0}
 --- !u!114 &148494902
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1595,6 +1596,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   groundNormal: {x: -1, y: 0, z: 0}
   scale: 4.9
+  playerMovement: {fileID: 0}
 --- !u!114 &412441700
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2221,7 +2223,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   playerCamera: {fileID: 1056898668}
-  topCamera: {fileID: 0}
+  topCamera: {fileID: 728283377}
   robotRender: {fileID: 884689452}
 --- !u!114 &456063283
 MonoBehaviour:
@@ -2253,40 +2255,35 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   developerMode: 0
+  devModeSpeed: 0
   handLength: 10
+  buoyantForceScale: 24.75
+  swimUpScale: 0
   lastOnGravityPanel: 0
   isWalking: 0
   isRunning: 0
-  inWater: 0
   enteredWater: 0
+  buoyantForce: {fileID: 0}
   kill: 0
   timeControl: {fileID: 0}
   playerCamera: {fileID: 1056898673}
-  clipCheckIgnore:
-    serializedVersion: 2
-    m_Bits: 1360
   groundCheckIgnore:
     serializedVersion: 2
     m_Bits: 1040
   deathCanvas: {fileID: 2014740946}
   deathImage: {fileID: 247869094}
   playerSpeed: 12
-  playerGravityScale: 0
   isGrounded: 0
+  lastGrounded: 0
   isOnGravityPanel: 0
   groundNormal: {x: 0, y: 0, z: 0}
   stepOffset: 0
   jumpForce: 10
-  footStepTime: 0.25
+  rawInput: {x: 0, y: 0, z: 0}
+  normalizedInput: {x: 0, y: 0, z: 0}
+  clampedInput: {x: 0, y: 0, z: 0}
   audioSource: {fileID: 456063279}
   electrocutionAudio: {fileID: 8300000, guid: a0da794615aaaf84a8a758d7ff7a37fe, type: 3}
-  footstepsClips:
-  - {fileID: 8300000, guid: f9d36cfc5564eba45bfb588a58292115, type: 3}
-  - {fileID: 8300000, guid: 4ce60e9ddcbd9964382bfe773d95b163, type: 3}
-  - {fileID: 8300000, guid: 5ee3abf800c3a2a40bd56392aa4ebe4e, type: 3}
-  - {fileID: 8300000, guid: 0fd0a50ebe903d64791a381f426dc9a6, type: 3}
-  - {fileID: 8300000, guid: e3b8d07e647141446b491233a8985725, type: 3}
-  - {fileID: 8300000, guid: 8777a0d4f5fcdba4d9ccdd5f96f8553a, type: 3}
   jumpClips:
   - {fileID: 8300000, guid: 9d2fcc48c62ffa847a9067db46dd82bd, type: 3}
   - {fileID: 8300000, guid: 2a1e79cbee2785445af69fb9e116f83d, type: 3}
@@ -2323,6 +2320,107 @@ MonoBehaviour:
     m_Bits: 1552
   playerMovement: {fileID: 456063284}
   playerRb: {fileID: 456063281}
+--- !u!114 &456063288
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 456063277}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ac3dee338454ffd4dac212ced533aa28, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+--- !u!114 &456063289
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 456063277}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d5139e7ee5906b94a9feaace61d38cd0, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  killed: 0
+  deathCanvas: {fileID: 2014740946}
+  deathImage: {fileID: 247869094}
+  playerTransform: {fileID: 456063278}
+  playerRb: {fileID: 0}
+  timeControl: {fileID: 456063283}
+  playerMovement: {fileID: 456063284}
+--- !u!114 &456063290
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 456063277}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 40df3d5fd3658f44b964dd36f8f0fb52, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  playerCamera: {fileID: 0}
+  handLength: 5
+  ignoredLayers:
+    serializedVersion: 2
+    m_Bits: 1040
+--- !u!114 &456063291
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 456063277}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: cee3dedc02eed5d4a847e8ca8fdd4bf1, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  playerMovement: {fileID: 456063284}
+  playerBuoyantForce: {fileID: 456063294}
+  audioSource: {fileID: 456063279}
+  footstepsClips:
+  - {fileID: 8300000, guid: f9d36cfc5564eba45bfb588a58292115, type: 3}
+  - {fileID: 8300000, guid: 4ce60e9ddcbd9964382bfe773d95b163, type: 3}
+  - {fileID: 8300000, guid: 5ee3abf800c3a2a40bd56392aa4ebe4e, type: 3}
+  - {fileID: 8300000, guid: 0fd0a50ebe903d64791a381f426dc9a6, type: 3}
+  - {fileID: 8300000, guid: e3b8d07e647141446b491233a8985725, type: 3}
+  - {fileID: 8300000, guid: 8777a0d4f5fcdba4d9ccdd5f96f8553a, type: 3}
+--- !u!114 &456063293
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 456063277}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4b43d89b2cca009409a84eaf8261702b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  groundNormal: {x: 0, y: 0, z: 0}
+  scale: 30
+  playerMovement: {fileID: 456063284}
+--- !u!114 &456063294
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 456063277}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4906ff6cd7438fe46828467d22325f33, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  groundNormal: {x: 0, y: 0, z: 0}
+  scale: 25
+  playerMovement: {fileID: 456063284}
+  inWater: 0
 --- !u!1 &479156873
 GameObject:
   m_ObjectHideFlags: 0
@@ -3242,6 +3340,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   groundNormal: {x: -1, y: 0, z: 0}
   scale: 4.9
+  playerMovement: {fileID: 0}
 --- !u!114 &647076982
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -4138,14 +4237,14 @@ Transform:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 728283377}
-  m_LocalRotation: {x: 0.15260497, y: -0.82934535, z: 0.26996598, w: 0.46477565}
-  m_LocalPosition: {x: 34.46701, y: 25.104887, z: -46.667618}
+  m_LocalRotation: {x: 0.29199484, y: -0.3100111, z: 0.16666667, w: 0.8892999}
+  m_LocalPosition: {x: 47.42, y: 4.36, z: -38.81}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 432106476}
   m_RootOrder: -1
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+  m_LocalEulerAnglesHint: {x: 38.512, y: -35.47, z: 8.48}
 --- !u!1 &731234977
 GameObject:
   m_ObjectHideFlags: 0
@@ -4510,6 +4609,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   groundNormal: {x: -1, y: 0, z: 0}
   scale: 4.9
+  playerMovement: {fileID: 0}
 --- !u!114 &855931656
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -5300,6 +5400,7 @@ GameObject:
   - component: {fileID: 1050258877}
   - component: {fileID: 1050258876}
   - component: {fileID: 1050258875}
+  - component: {fileID: 1050258879}
   m_Layer: 4
   m_Name: Cube (19)
   m_TagString: Untagged
@@ -5393,6 +5494,23 @@ Transform:
   m_Father: {fileID: 432106476}
   m_RootOrder: -1
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1050258879
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1050258874}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 26b94d4016c6fbf47959fe093cb6052e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  ignoredLayers:
+    serializedVersion: 2
+    m_Bits: 17
+  enterWater: {fileID: 8300000, guid: 874fd76b1756e184db6e6511c9774ad5, type: 3}
+  exitWater: {fileID: 8300000, guid: fde0c23e2d08a8c4aad06d17b6570c6b, type: 3}
 --- !u!1 &1056898668
 GameObject:
   m_ObjectHideFlags: 0
@@ -6588,6 +6706,15 @@ PrefabInstance:
       addedObject: {fileID: 1056898669}
     m_AddedComponents:
     - targetCorrespondingSourceObject: {fileID: 1696014694992928748, guid: d079cd0e6137a44b58864c3a91ad119a, type: 3}
+      insertIndex: 1
+      addedObject: {fileID: 456063281}
+    - targetCorrespondingSourceObject: {fileID: 1696014694992928748, guid: d079cd0e6137a44b58864c3a91ad119a, type: 3}
+      insertIndex: 2
+      addedObject: {fileID: 456063280}
+    - targetCorrespondingSourceObject: {fileID: 1696014694992928748, guid: d079cd0e6137a44b58864c3a91ad119a, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 456063279}
+    - targetCorrespondingSourceObject: {fileID: 1696014694992928748, guid: d079cd0e6137a44b58864c3a91ad119a, type: 3}
       insertIndex: -1
       addedObject: {fileID: 456063284}
     - targetCorrespondingSourceObject: {fileID: 1696014694992928748, guid: d079cd0e6137a44b58864c3a91ad119a, type: 3}
@@ -6598,16 +6725,25 @@ PrefabInstance:
       addedObject: {fileID: 456063286}
     - targetCorrespondingSourceObject: {fileID: 1696014694992928748, guid: d079cd0e6137a44b58864c3a91ad119a, type: 3}
       insertIndex: -1
+      addedObject: {fileID: 456063293}
+    - targetCorrespondingSourceObject: {fileID: 1696014694992928748, guid: d079cd0e6137a44b58864c3a91ad119a, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 456063294}
+    - targetCorrespondingSourceObject: {fileID: 1696014694992928748, guid: d079cd0e6137a44b58864c3a91ad119a, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 456063288}
+    - targetCorrespondingSourceObject: {fileID: 1696014694992928748, guid: d079cd0e6137a44b58864c3a91ad119a, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 456063289}
+    - targetCorrespondingSourceObject: {fileID: 1696014694992928748, guid: d079cd0e6137a44b58864c3a91ad119a, type: 3}
+      insertIndex: -1
       addedObject: {fileID: 456063282}
     - targetCorrespondingSourceObject: {fileID: 1696014694992928748, guid: d079cd0e6137a44b58864c3a91ad119a, type: 3}
       insertIndex: -1
-      addedObject: {fileID: 456063281}
+      addedObject: {fileID: 456063290}
     - targetCorrespondingSourceObject: {fileID: 1696014694992928748, guid: d079cd0e6137a44b58864c3a91ad119a, type: 3}
       insertIndex: -1
-      addedObject: {fileID: 456063280}
-    - targetCorrespondingSourceObject: {fileID: 1696014694992928748, guid: d079cd0e6137a44b58864c3a91ad119a, type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 456063279}
+      addedObject: {fileID: 456063291}
   m_SourcePrefab: {fileID: 100100000, guid: d079cd0e6137a44b58864c3a91ad119a, type: 3}
 --- !u!1 &1352402650
 GameObject:
@@ -7191,6 +7327,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   groundNormal: {x: -1, y: 0, z: 0}
   scale: 4.9
+  playerMovement: {fileID: 0}
 --- !u!114 &1438323219
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -9032,6 +9169,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   groundNormal: {x: -1, y: 0, z: 0}
   scale: 4.9
+  playerMovement: {fileID: 0}
 --- !u!114 &1936048429
 MonoBehaviour:
   m_ObjectHideFlags: 0

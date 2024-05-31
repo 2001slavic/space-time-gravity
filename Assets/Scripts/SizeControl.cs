@@ -23,8 +23,6 @@ public class SizeControl : MonoBehaviour
             { 2, 2f   }
     };
 
-
-
     public void ResetPlayerStats()
     {
 
@@ -73,6 +71,20 @@ public class SizeControl : MonoBehaviour
         if (intendedSize > size && Physics.OverlapCapsule(upperSphere, lowerSphere, playerCollider.radius * scales[intendedSize], ~sizeChangeMask).Length > 0)
             return true;
         return false;
+    }
+
+    private void OnDrawGizmos()
+    {
+        int intendedSize = GetIntendedSize();
+        float radius = playerCollider.radius * scales[intendedSize];
+        // used to raise the intended collider slightly upper in order to prevent colliding with ground
+        Vector3 offset = playerTransform.up * (playerCollider.radius + 0.2f);
+        Vector3 upperSphere = transform.TransformPoint(playerCollider.center) + offset + playerTransform.up * (playerCollider.height * scales[size] / 2 - playerCollider.radius * scales[size]);
+        Vector3 lowerSphere = transform.TransformPoint(playerCollider.center) + offset - playerTransform.up * (playerCollider.height * scales[size] / 2 - playerCollider.radius * scales[size]);
+
+        Gizmos.color = Color.yellow;
+        Gizmos.DrawSphere(upperSphere, radius);
+        Gizmos.DrawSphere(lowerSphere, radius);
     }
 
     void Start()
