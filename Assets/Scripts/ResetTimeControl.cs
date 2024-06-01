@@ -22,12 +22,4 @@ public class ResetTimeControl : MonoBehaviour
             timeControl.rewindOn = false;
         }
     }
-    void Start()
-    {
-
-    }
-    void Update()
-    {
-        
-    }
 }

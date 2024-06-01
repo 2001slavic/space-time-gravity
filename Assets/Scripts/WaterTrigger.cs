@@ -13,7 +13,7 @@ public class WaterTrigger : MonoBehaviour
     private AudioClip exitWater;
     private void OnTriggerEnter(Collider other)
     {
-        GameObject gameObject = other.GetComponent<Collider>().gameObject;
+        GameObject gameObject = other.gameObject;
         if (gameObject.layer == ignoredLayers)
         {
             return;
@@ -34,7 +34,7 @@ public class WaterTrigger : MonoBehaviour
 
     private void OnTriggerExit(Collider other)
     {
-        GameObject gameObject = other.GetComponent<Collider>().gameObject;
+        GameObject gameObject = other.gameObject;
         if (gameObject.layer == ignoredLayers)
         {
             return;

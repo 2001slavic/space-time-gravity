@@ -13,24 +13,10 @@ using UnityEngine.UI;
 
 public class PlayerMovement : MonoBehaviour
 {
-    [SerializeField]
-    private bool developerMode;
+    public bool developerMode;
     [SerializeField]
     private float devModeSpeed;
 
-    [SerializeField]
-    private float handLength = 1.5f;
-
-    private Vector3 lastCheckpointPosition;
-    private Quaternion lastCheckpointRotation;
-    private Vector3 lastCheckpointVelocity;
-    private bool lastCheckpointPauseState;
-    private bool lastCheckpointRewindState;
-    private float lastCheckpointEffectTime;
-    private Vector3 lastCheckpointGroundNormal;
-
-    [SerializeField]
-    private float buoyantForceScale;
     [SerializeField]
     private float swimUpScale;
 
@@ -42,12 +28,8 @@ public class PlayerMovement : MonoBehaviour
     public bool isRunning;
     [SerializeField]
     private bool enteredWater;
-
     [SerializeField]
     private BuoyantForce buoyantForce;
-
-    [SerializeField]
-    private bool kill;
 
     private Rigidbody rb;
     private CapsuleCollider collider;
@@ -55,15 +37,10 @@ public class PlayerMovement : MonoBehaviour
     public Camera playerCamera;
     [SerializeField]
     private LayerMask groundCheckIgnore;
-    [SerializeField]
-    private Canvas deathCanvas;
-    [SerializeField]
-    private Image deathImage;
     public float playerSpeed;
     public bool isGrounded;
     public bool lastGrounded;
-    [SerializeField]
-    private bool isOnGravityPanel;
+    public bool isOnGravityPanel;
     [HideInInspector]
     public Vector3 groundNormal;
     public float stepOffset;
@@ -76,49 +53,17 @@ public class PlayerMovement : MonoBehaviour
     [HideInInspector]
     public Vector3 clampedInput;
 
-    private int deathFadePhase;
     [SerializeField]
     private AudioSource audioSource;
-    [SerializeField]
-    private AudioClip electrocutionAudio;
     [SerializeField]
     private AudioClip[] jumpClips;
     [SerializeField]
     private AudioClip[] landClips;
 
-    private void OnTriggerEnter(Collider other)
-    {
-        if (other.CompareTag("Checkpoint"))
-        {
-            lastCheckpointPosition = transform.position;
-            lastCheckpointRotation = transform.rotation;
-            lastCheckpointVelocity = rb.velocity;
-            lastCheckpointEffectTime = timeControl.effectRemainingTime;
-            lastCheckpointGroundNormal = groundNormal;
-            lastCheckpointPauseState = timeControl.pauseOn;
-            lastCheckpointRewindState = timeControl.rewindOn;
-        }
-    }
-
-    private void OnTriggerStay(Collider other)
-    {
-        if (other.GetComponent<Collider>().gameObject.layer == LayerMask.NameToLayer("Water") &&
-            other.CompareTag("Dangerous") &&
-            !timeControl.pauseOn &&
-            !timeControl.rewindOn)
-        {
-            if (!kill)
-            {
-                AudioSource.PlayClipAtPoint(electrocutionAudio, transform.position, PlayerPrefs.GetFloat("volume", 0.5f));
-            }
-
-            kill = true;
-        }
-    }
-
     private void HandleDeveloperMovement()
     {
-        Vector3 input = new Vector3(Input.GetAxis("Horizontal"), 0, Input.GetAxis("Vertical"));
+        rb.velocity = Vector3.zero;
+        Vector3 input = new(Input.GetAxis("Horizontal"), 0, Input.GetAxis("Vertical"));
         rb.MovePosition(rb.position + transform.TransformDirection(input) * devModeSpeed);
         RaycastHit hit;
         if (Input.GetMouseButtonDown(0))
@@ -174,7 +119,7 @@ public class PlayerMovement : MonoBehaviour
 
     private void Jump()
     {   
-        if (!isGrounded || !Input.GetButtonDown("Jump"))
+        if (!isGrounded || isOnGravityPanel || !Input.GetButtonDown("Jump"))
         {
             return;
         }
@@ -185,16 +130,6 @@ public class PlayerMovement : MonoBehaviour
             audioSource.Play();
         }
         rb.AddForce(groundNormal * jumpForce, ForceMode.Impulse);
-    }
-
-    private void ApplyBuoyantForce(float scale)
-    {
-        if (!buoyantForce.inWater)
-        {
-            return;
-        }
-
-        rb.AddForce(groundNormal * scale, ForceMode.Acceleration);
     }
 
     /// <summary>
@@ -221,21 +156,13 @@ public class PlayerMovement : MonoBehaviour
 
     private void HandleStepUpStairs(Vector3 direction)
     {
-        float distance = collider.radius * transform.localScale.x + 0.01f;
+        Vector3 offset = transform.up * (stepOffset + 0.05f) + collider.radius * transform.localScale.x * direction.normalized;
+        Vector3 origin = transform.TransformPoint(collider.center) - transform.up * (collider.height * transform.localScale.x / 2);
 
-        Vector3 sphere1 = transform.TransformPoint(collider.center) + transform.up * (collider.height * transform.localScale.x / 2 - collider.radius * transform.localScale.x);
-        Vector3 sphere2 = transform.TransformPoint(collider.center) - transform.up * (collider.height * transform.localScale.x / 2 - collider.radius * transform.localScale.x);
-
-        bool facingObstacle = Physics.CapsuleCast(sphere1, sphere2, collider.radius * transform.localScale.x, direction, out RaycastHit hit, distance, ~groundCheckIgnore);
-        // player step up on stairs
-        if (facingObstacle)
+        if (Physics.Raycast(origin + offset, -transform.up, out RaycastHit hit, stepOffset, ~groundCheckIgnore) && hit.transform.gameObject.layer == LayerMask.NameToLayer("Stairs"))
         {
-            Vector3 stepSphere = transform.TransformPoint(collider.center) - transform.up * ((collider.height * transform.localScale.x / 2) - (collider.radius * transform.localScale.x) - stepOffset);
-            bool cannotStepUp = Physics.CapsuleCast(sphere1, stepSphere, collider.radius * transform.localScale.x, direction, out _, distance, ~groundCheckIgnore);
-            if (!cannotStepUp && hit.transform.gameObject.layer == LayerMask.NameToLayer("Stairs"))
-            {
-                rb.position += direction.normalized * 0.05f + groundNormal * 0.05f;
-            }
+            Vector3 velocity = Vector3.zero;
+            rb.position = Vector3.SmoothDamp(rb.position, hit.point, ref velocity, 1 / (32 * clampedInput.magnitude));
         }
     }
 
@@ -263,49 +190,6 @@ public class PlayerMovement : MonoBehaviour
         rb.velocity += direction * speed;
     }
 
-    private void HandleDeath()
-    {
-        if (!kill)
-            return;
-        deathCanvas.gameObject.SetActive(true);
-        if (deathFadePhase == 0)
-        {
-            Color color = deathImage.color;
-            color.a += Time.deltaTime;
-            if (color.a >= 1)
-            {
-                color.a = 1;
-                deathFadePhase = 1;
-                transform.rotation = lastCheckpointRotation;
-            }
-            deathImage.color = color;
-        }
-        else if (deathFadePhase == 1)
-        {
-            Color color = deathImage.color;
-            color.a -= Time.deltaTime;
-            if (color.a <= 0)
-            {
-                color.a = 0;
-                deathFadePhase = 2;
-            }
-            deathImage.color = color;
-
-            transform.position = lastCheckpointPosition;
-            rb.velocity = lastCheckpointVelocity;
-            timeControl.effectRemainingTime = lastCheckpointEffectTime;
-            groundNormal = lastCheckpointGroundNormal;
-            timeControl.pauseOn = lastCheckpointPauseState;
-            timeControl.rewindOn = lastCheckpointRewindState;
-        }
-        else if (deathFadePhase == 2)
-        {
-            deathFadePhase = 0;
-            kill = false;
-            deathCanvas.gameObject.SetActive(false);
-        }
-    }
-
     private void PlayLandClip()
     {
         if (!isGrounded || lastGrounded || buoyantForce.inWater)
@@ -317,38 +201,6 @@ public class PlayerMovement : MonoBehaviour
         audioSource.Play();
 
     }
-
-    //private void HandleInteraction()
-    //{
-    //    if (!Input.GetButtonDown("Use"))
-    //    {
-    //        return;
-    //    }
-    //    RaycastHit[] handHit = Physics.RaycastAll(playerCamera.transform.position, playerCamera.transform.forward, handLength, ~clipCheckIgnore);
-    //    float minDistance = Mathf.Infinity;
-    //    int minIndex = -1;
-    //    for (int i = 0; i < handHit.Length; i++)
-    //    {
-    //        if (handHit[i].distance < minDistance)
-    //        {
-    //            minDistance = handHit[i].distance;
-    //            minIndex = i;
-    //        }
-    //        else if (handHit[i].distance == minDistance && handHit[i].collider.CompareTag("Button"))
-    //        {
-    //            minDistance = handHit[i].distance;
-    //            minIndex = i;
-    //        }
-    //    }
-    //    if (minIndex != -1)
-    //    {
-    //        Debug.Log(handHit[minIndex].collider.gameObject.name);
-    //    }
-    //    if (minIndex != -1 && handHit[minIndex].collider.CompareTag("Button"))
-    //    {
-    //        handHit[minIndex].collider.gameObject.GetComponent<GameButton>().pressed = true;
-    //    }
-    //}
 
     private void HandleWaterVerticalMovement()
     {
@@ -379,7 +231,7 @@ public class PlayerMovement : MonoBehaviour
         {
             return;
         }
-        rb.AddForce(groundNormal * jumpForce * 0.5f, ForceMode.Impulse);
+        rb.AddForce(0.5f * jumpForce * groundNormal, ForceMode.Impulse);
     }
 
     private void Outro()
@@ -401,8 +253,6 @@ public class PlayerMovement : MonoBehaviour
         developerMode = false;
         devModeSpeed = 0.3f;
 
-        deathFadePhase = 0;
-
         groundNormal = new Vector3(0, 1, 0);
 
         lastOnGravityPanel = false;
@@ -410,14 +260,10 @@ public class PlayerMovement : MonoBehaviour
         isWalking = false;
         buoyantForce.inWater = false;
         enteredWater = false;
-        kill = false;
         lastGrounded = true;
         isGrounded = false;
 
-        buoyantForceScale = 25;
         swimUpScale = 5;
-
-        //deathCanvas.gameObject.SetActive(false);
 
         audioSource = GetComponent<AudioSource>();
         audioSource.volume = PlayerPrefs.GetFloat("volume", 0.5f) * 0.1f;
@@ -446,21 +292,10 @@ public class PlayerMovement : MonoBehaviour
 
         Vector3 direction = transform.TransformDirection(clampedInput).normalized;
 
-        HandleStepUpStairs(direction);
+        HandleStepUpStairs(transform.TransformDirection(normalizedInput));
         Move(direction, playerSpeed * clampedInput.magnitude);
 
-        //HandleDeath();
-
-        //HandleInteraction();
 
         Outro();
-    }
-
-    void FixedUpdate()
-    {
-        if (developerMode)
-        {
-            return;
-        }
     }
 }

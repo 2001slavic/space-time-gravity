@@ -2298,8 +2298,6 @@ MonoBehaviour:
   - {fileID: 8300000, guid: 0663bec4e1fa4634db3382805200bb83, type: 3}
   - {fileID: 8300000, guid: bbb72b15b816e7344bdc1d15bfbe5640, type: 3}
   - {fileID: 8300000, guid: b954b81ada5fc8141910adbe72a70d72, type: 3}
-  enterWater: {fileID: 8300000, guid: 874fd76b1756e184db6e6511c9774ad5, type: 3}
-  exitWater: {fileID: 8300000, guid: fde0c23e2d08a8c4aad06d17b6570c6b, type: 3}
 --- !u!114 &456063286
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -3131,7 +3129,7 @@ TerrainCollider:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 641445502}
-  m_Material: {fileID: 0}
+  m_Material: {fileID: 13400000, guid: 8aa66ab29dc47544e8d17aa18ecb4772, type: 2}
   m_IncludeLayers:
     serializedVersion: 2
     m_Bits: 0

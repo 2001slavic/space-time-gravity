@@ -26,6 +26,10 @@ public class BuoyantForce : MonoBehaviour
         }
         if (playerMovement != null)
         {
+            if (playerMovement.developerMode)
+            {
+                return;
+            }
             groundNormal = playerMovement.groundNormal;
         }
         rb.AddForce(groundNormal * scale, ForceMode.Acceleration);

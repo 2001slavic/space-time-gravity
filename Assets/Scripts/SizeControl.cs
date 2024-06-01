@@ -65,7 +65,7 @@ public class SizeControl : MonoBehaviour
         int intendedSize = GetIntendedSize();
         // used to raise the intended collider slightly upper in order to prevent colliding with ground
         Vector3 offset = playerTransform.up * (playerCollider.radius + 0.2f);
-        Vector3 upperSphere = transform.TransformPoint(playerCollider.center) + offset + playerTransform.up * (playerCollider.height * scales[size] / 2 - playerCollider.radius * scales[size]);
+        Vector3 upperSphere = transform.TransformPoint(playerCollider.center) + offset + playerTransform.up * (playerCollider.height * scales[intendedSize] / 2 - playerCollider.radius * scales[intendedSize]);
         Vector3 lowerSphere = transform.TransformPoint(playerCollider.center) + offset - playerTransform.up * (playerCollider.height * scales[size] / 2 - playerCollider.radius * scales[size]);
 
         if (intendedSize > size && Physics.OverlapCapsule(upperSphere, lowerSphere, playerCollider.radius * scales[intendedSize], ~sizeChangeMask).Length > 0)
@@ -73,19 +73,20 @@ public class SizeControl : MonoBehaviour
         return false;
     }
 
-    private void OnDrawGizmos()
-    {
-        int intendedSize = GetIntendedSize();
-        float radius = playerCollider.radius * scales[intendedSize];
-        // used to raise the intended collider slightly upper in order to prevent colliding with ground
-        Vector3 offset = playerTransform.up * (playerCollider.radius + 0.2f);
-        Vector3 upperSphere = transform.TransformPoint(playerCollider.center) + offset + playerTransform.up * (playerCollider.height * scales[size] / 2 - playerCollider.radius * scales[size]);
-        Vector3 lowerSphere = transform.TransformPoint(playerCollider.center) + offset - playerTransform.up * (playerCollider.height * scales[size] / 2 - playerCollider.radius * scales[size]);
+    //private void OnDrawGizmos()
+    //{
+    //    int intendedSize = GetIntendedSize();
+    //    float radius = playerCollider.radius * scales[intendedSize];
+    //    // used to raise the intended collider slightly upper in order to prevent colliding with ground
+    //    Vector3 offset = playerTransform.up * (playerCollider.radius + 0.2f);
+    //    //offset = Vector3.zero;
+    //    Vector3 upperSphere = transform.TransformPoint(playerCollider.center) + offset + playerTransform.up * (playerCollider.height * scales[intendedSize] / 2 - playerCollider.radius * scales[intendedSize]);
+    //    Vector3 lowerSphere = transform.TransformPoint(playerCollider.center) + offset - playerTransform.up * (playerCollider.height * scales[size] / 2 - playerCollider.radius * scales[size]);
 
-        Gizmos.color = Color.yellow;
-        Gizmos.DrawSphere(upperSphere, radius);
-        Gizmos.DrawSphere(lowerSphere, radius);
-    }
+    //    Gizmos.color = Color.yellow;
+    //    Gizmos.DrawSphere(upperSphere, radius);
+    //    Gizmos.DrawSphere(lowerSphere, radius);
+    //}
 
     void Start()
     {
@@ -95,13 +96,16 @@ public class SizeControl : MonoBehaviour
 
     void Update()
     {
-        if (!Input.GetButtonDown("SizeChange"))
+        if (!Input.GetButtonDown("SizeChange") || playerMovement.isOnGravityPanel)
         {
             return;
         }
 
         if (!WillCollide())
             size = GetIntendedSize();
+        // if collision prevents scaling up, change to inferior size
+        else if (size > 0)
+            size -= 1;
         ResetPlayerStats();
     }
 }
