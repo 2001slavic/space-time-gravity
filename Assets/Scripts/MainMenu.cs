@@ -9,26 +9,61 @@ using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
+using UnityEngine.InputSystem;
+using UnityEngine.InputSystem.Users;
+using UnityEngine.InputSystem.LowLevel;
 
 public class MainMenu : MonoBehaviour
 {
-    public EventSystem eventSystem;
+    [SerializeField]
+    private EventSystem eventSystem;
+    [SerializeField]
+    private Canvas canvas;
+    [SerializeField]
+    private GameObject background;
 
-    public GameObject mainMenu;
-    public GameObject settingsMenu;
-    public GameObject singelplayerMenu;
-    //public GameObject multiPlayerMenu;
-    public GameObject networkMPMenu;
-    public GameObject quitMenu;
+    [SerializeField]
+    private GameObject mainMenu;
+    [SerializeField]
+    private GameObject settingsMenu;
+    [SerializeField]
+    private GameObject singelplayerMenu;
+    [SerializeField]
+    private GameObject mpLevelSelectMenu;
+    [SerializeField]
+    private GameObject multiplayerMenu;
+    [SerializeField]
+    private GameObject networkMPMenu;
+    [SerializeField]
+    private GameObject splitScreenMenu;
+    [SerializeField]
+    private GameObject quitMenu;
 
-    public GameObject selectedInMainMenu;
-    public GameObject selectedInSettings;
-    public GameObject selectedInSP;
-    public GameObject selectedInQuit;
-    public GameObject selectedInNetworkMP;
+    [SerializeField]
+    private GameObject selectedInMainMenu;
+    [SerializeField]
+    private GameObject selectedInSettings;
+    [SerializeField]
+    private GameObject selectedInSP;
+    [SerializeField]
+    private GameObject selectedLevelMP;
+    [SerializeField]
+    private GameObject selectedInQuit;
+    [SerializeField]
+    private GameObject selectedInNetwork;
+    [SerializeField]
+    private GameObject selectedInNetworkMP;
 
-    public Button joinButton;
+    [SerializeField]
+    private Button joinButton;
     private string joinTo;
+
+    [SerializeField]
+    private GameObject navigationButtons;
+    [SerializeField]
+    private GameObject keyboardNavigation;
+    [SerializeField]
+    private GameObject xboxNavigation;
 
     private const int UNDEFINED = 0;
     private const int HOST = 1;
@@ -91,49 +126,101 @@ public class MainMenu : MonoBehaviour
         SceneManager.UnloadSceneAsync(oldActiveScene);
     }
 
+    private void SetCanvasChildrenInactive()
+    {
+        foreach (Transform child in canvas.gameObject.transform)
+        {
+            GameObject gameObject = child.gameObject;
+
+            if (gameObject == background || gameObject == navigationButtons)
+                continue;
+            gameObject.SetActive(false);
+        }
+    }
+
+
     public void SingePlayerClick()
     {
-        mainMenu.SetActive(false);
-        settingsMenu.SetActive(false);
-        quitMenu.SetActive(false);
-        //multiPlayerMenu.SetActive(false);
-        networkMPMenu.SetActive(false);
+        //mainMenu.SetActive(false);
+        //settingsMenu.SetActive(false);
+        //quitMenu.SetActive(false);
+        ////multiPlayerMenu.SetActive(false);
+        //networkMPMenu.SetActive(false);
+        SetCanvasChildrenInactive();
         singelplayerMenu.SetActive(true);
         eventSystem.SetSelectedGameObject(selectedInSP);
     }
 
     public void SettingsClick()
     {
-        mainMenu.SetActive(false);
-        singelplayerMenu.SetActive(false);
-        quitMenu.SetActive(false);
-        //multiPlayerMenu.SetActive(false);
-        networkMPMenu.SetActive(false);
+        //mainMenu.SetActive(false);
+        //singelplayerMenu.SetActive(false);
+        //quitMenu.SetActive(false);
+        ////multiPlayerMenu.SetActive(false);
+        //networkMPMenu.SetActive(false);
+        SetCanvasChildrenInactive();
         settingsMenu.SetActive(true);
         eventSystem.SetSelectedGameObject(selectedInSettings);
     }
 
     public void QuitMenuClick()
     {
-        mainMenu.SetActive(false);
-        settingsMenu.SetActive(false);
-        singelplayerMenu.SetActive(false);
-        //multiPlayerMenu.SetActive(false);
-        networkMPMenu.SetActive(false);
+        //mainMenu.SetActive(false);
+        //settingsMenu.SetActive(false);
+        //singelplayerMenu.SetActive(false);
+        ////multiPlayerMenu.SetActive(false);
+        //networkMPMenu.SetActive(false);
+        SetCanvasChildrenInactive();
         quitMenu.SetActive(true);
         eventSystem.SetSelectedGameObject(selectedInQuit);
     }
 
+    public void MPLevelSelectClick()
+    {
+        SetCanvasChildrenInactive();
+        mpLevelSelectMenu.SetActive(true);
+        eventSystem.SetSelectedGameObject(selectedLevelMP);
+    }
+
+    public void SelectMPTestClick()
+    {
+        MultiplayerSelectedLevel.level = "testMP";
+        MultiplayerMenuClick();
+    }
+
+    public void SelectMPLevel1Click()
+    {
+        MultiplayerSelectedLevel.level = "MP1";
+        MultiplayerMenuClick();
+    }
+
+    public void MultiplayerMenuClick()
+    {
+        SetCanvasChildrenInactive();
+        multiplayerMenu.SetActive(true);
+        eventSystem.SetSelectedGameObject(selectedInNetwork);
+
+    }
+
     public void NetworkMPMenuClick()
     {
-        mainMenu.SetActive(false);
-        settingsMenu.SetActive(false);
-        singelplayerMenu.SetActive(false);
-        //multiPlayerMenu.SetActive(false);
-        quitMenu.SetActive(false);
+        //mainMenu.SetActive(false);
+        //settingsMenu.SetActive(false);
+        //singelplayerMenu.SetActive(false);
+        ////multiPlayerMenu.SetActive(false);
+        //quitMenu.SetActive(false);
+        SetCanvasChildrenInactive();
         networkMPMenu.SetActive(true);
         
         eventSystem.SetSelectedGameObject(selectedInNetworkMP);
+    }
+
+    public void SplitScreenMenuCLick()
+    {
+        SetCanvasChildrenInactive();
+        splitScreenMenu.SetActive(true);
+
+        //eventSystem.SetSelectedGameObject(select);
     }
 
     public void HostClick()
@@ -177,11 +264,12 @@ public class MainMenu : MonoBehaviour
 
     public void BackToMainMenuClick()
     {
-        singelplayerMenu.SetActive(false);
-        settingsMenu.SetActive(false);
-        quitMenu.SetActive(false);
-        //multiPlayerMenu.SetActive(false);
-        networkMPMenu.SetActive(false);
+        //singelplayerMenu.SetActive(false);
+        //settingsMenu.SetActive(false);
+        //quitMenu.SetActive(false);
+        ////multiPlayerMenu.SetActive(false);
+        //networkMPMenu.SetActive(false);
+        SetCanvasChildrenInactive();
         mainMenu.SetActive(true);
         eventSystem.SetSelectedGameObject(selectedInMainMenu);
     }
@@ -214,28 +302,60 @@ public class MainMenu : MonoBehaviour
         PlayerPrefs.SetFloat("jsensitivity", value);
     }
 
-    private void Start()
+    private void HandleLastUsedInputDevice()
+    {
+        if (splitScreenMenu.activeSelf)
+        {
+            navigationButtons.SetActive(false);
+            return;
+        }
+        // Check if the last input device is a gamepad
+        if (Gamepad.current != null && Gamepad.current.wasUpdatedThisFrame)
+        {
+            navigationButtons.SetActive(true);
+            keyboardNavigation.SetActive(false);
+            xboxNavigation.SetActive(true);
+        }
+        // Check if the last input device is a keyboard
+        else if (Keyboard.current != null && Keyboard.current.wasUpdatedThisFrame)
+        {
+            navigationButtons.SetActive(true);
+            xboxNavigation.SetActive(false);
+            keyboardNavigation.SetActive(true);
+        }
+    }
+
+    void Start()
     {
         Cursor.lockState = CursorLockMode.Confined;
         networkManagerQuery = UNDEFINED;
-        singelplayerMenu.SetActive(false);
-        settingsMenu.SetActive(false);
-        quitMenu.SetActive(false);
-        //multiPlayerMenu.SetActive(false);
-        networkMPMenu.SetActive(false);
+        //singelplayerMenu.SetActive(false);
+        //settingsMenu.SetActive(false);
+        //quitMenu.SetActive(false);
+        ////multiPlayerMenu.SetActive(false);
+        //networkMPMenu.SetActive(false);
+        SetCanvasChildrenInactive();
         mainMenu.SetActive(true);
         joinTo = "127.0.0.1";
         
     }
 
-    private void Update()
+    void Update()
     {
-
+        HandleLastUsedInputDevice();
         if (Input.GetButtonDown("Cancel"))
         {
             if (mainMenu.activeSelf)
             {
                 QuitMenuClick();
+            }
+            else if (networkMPMenu.activeSelf || splitScreenMenu.activeSelf)
+            {
+                MultiplayerMenuClick();
+            }
+            else if (multiplayerMenu.activeSelf)
+            {
+                MPLevelSelectClick();
             }
             else
             {
