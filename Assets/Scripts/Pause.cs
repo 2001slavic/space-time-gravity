@@ -1,8 +1,11 @@
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
+using TMPro;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.SceneManagement;
+using UnityEngine.UI;
 
 public class Pause : MonoBehaviour
 {
@@ -21,8 +24,13 @@ public class Pause : MonoBehaviour
     public GameObject selectedInSettings;
     public GameObject selectedInQuit;
 
-    public MouseLook mouseLook;
-    public JoystickLook joystickLook;
+    [SerializeField]
+    private PlayerLook playerLook;
+    [SerializeField]
+    private TMP_InputField sensitivityInputField;
+    [SerializeField]
+    private Slider sensitivitySlider;
+
     public AudioSource[] audioSources;
 
     public void ResumeClick()
@@ -31,9 +39,9 @@ public class Pause : MonoBehaviour
         pauseCanvas.gameObject.SetActive(false);
         pauseCamera.gameObject.SetActive(false);
         mainGameObject.SetActive(true);
+        playerLook.x = 0;
+        playerLook.y = 0;
         Cursor.lockState = CursorLockMode.Locked;
-        mouseLook.mouseSensitivity = GetMouseSensitivity();
-        joystickLook.joyLookSensitivity = GetJoystickLookSensitivity();
     }
 
     public void SettingsClick()
@@ -41,6 +49,7 @@ public class Pause : MonoBehaviour
         mainMenu.SetActive(false);
         quitMenu.SetActive(false);
         settingsMenu.SetActive(true);
+        sensitivityInputField.text = GetMouseSensitivity().ToString();
         eventSystem.SetSelectedGameObject(selectedInSettings);
     }
 
@@ -79,16 +88,15 @@ public class Pause : MonoBehaviour
     public void SetMouseSensitivity(float value)
     {
         PlayerPrefs.SetFloat("sensitivity", value);
+        string valueString = Mathf.FloorToInt(value).ToString();
+        valueString = valueString.Substring(0, Mathf.Min(valueString.Length, 4));
+        sensitivityInputField.text = valueString;
     }
-
-    public float GetJoystickLookSensitivity()
+    public void SetMouseSensitivity(string value)
     {
-        return PlayerPrefs.GetFloat("jsensitivity", 500);
-    }
-
-    public void SetJoystickSensitivity(float value)
-    {
-        PlayerPrefs.SetFloat("jsensitivity", value);
+        float floatValue = float.Parse(value);
+        PlayerPrefs.SetFloat("sensitivity", floatValue);
+        sensitivitySlider.value = floatValue;
     }
 
     public void SetVolume(float value)
@@ -108,8 +116,6 @@ public class Pause : MonoBehaviour
         pauseCamera.gameObject.SetActive(false);
         mainGameObject.SetActive(true);
         Cursor.lockState = CursorLockMode.Locked;
-        mouseLook.mouseSensitivity = GetMouseSensitivity();
-        joystickLook.joyLookSensitivity = GetJoystickLookSensitivity();
     }
     void Update()
     {
@@ -133,9 +139,9 @@ public class Pause : MonoBehaviour
                 pauseCanvas.gameObject.SetActive(false);
                 pauseCamera.gameObject.SetActive(false);
                 mainGameObject.SetActive(true);
+                playerLook.x = 0;
+                playerLook.y = 0;
                 Cursor.lockState = CursorLockMode.Locked;
-                mouseLook.mouseSensitivity = GetMouseSensitivity();
-                joystickLook.joyLookSensitivity = GetJoystickLookSensitivity();
             }
         }
         else if (Input.GetButtonDown("Cancel") && !mainMenu.activeSelf)

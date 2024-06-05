@@ -23,12 +23,14 @@ public class CheckpointTrigger : MonoBehaviour
         bool rewindOn = timeControl.rewindOn;
         Vector3 groundNormal = gameObject.GetComponent<PlayerMovement>().groundNormal;
 
-        Checkpoint.Position = position;
-        Checkpoint.Rotation = rotation;
-        Checkpoint.Velocity = velocity;
-        Checkpoint.EffectRemainingTime = effectRemainingTime;
-        Checkpoint.PauseOn = pauseOn;
-        Checkpoint.RewindOn = rewindOn;
-        Checkpoint.GroundNormal = groundNormal;
+        Checkpoint playerCheckpoint = other.gameObject.GetComponent<PlayerDeath>().lastCheckpoint;
+
+        playerCheckpoint.Position = position;
+        playerCheckpoint.Rotation = rotation;
+        playerCheckpoint.Velocity = velocity;
+        playerCheckpoint.EffectRemainingTime = effectRemainingTime;
+        playerCheckpoint.PauseOn = pauseOn;
+        playerCheckpoint.RewindOn = rewindOn;
+        playerCheckpoint.GroundNormal = groundNormal;
     }
 }

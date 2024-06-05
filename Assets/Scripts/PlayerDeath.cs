@@ -1,6 +1,5 @@
 using System.Collections;
 using System.Collections.Generic;
-using UnityEditor.Experimental.GraphView;
 using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.Timeline;
@@ -23,13 +22,24 @@ public class PlayerDeath : MonoBehaviour
     [SerializeField]
     private PlayerMovement playerMovement;
 
+    [HideInInspector]
+    public Checkpoint lastCheckpoint;
+
+    [SerializeField]
+    private SSPause splitscreenPause;
+
     void Start()
     {
         killed = false;
+        lastCheckpoint = new Checkpoint();
     }
 
     void Update()
     {
+        if (splitscreenPause != null && splitscreenPause.paused)
+        {
+            deathCanvas.gameObject.SetActive(false);
+        }
         if (!killed)
             return;
         deathCanvas.gameObject.SetActive(true);
@@ -43,7 +53,7 @@ public class PlayerDeath : MonoBehaviour
                 color.a = 1;
                 deathFadePhase = 1;
 
-                playerTransform.rotation = Checkpoint.Rotation;
+                playerTransform.rotation = lastCheckpoint.Rotation;
             }
             deathImage.color = color;
         }
@@ -60,12 +70,12 @@ public class PlayerDeath : MonoBehaviour
             deathImage.color = color;
 
 
-            playerTransform.position = Checkpoint.Position;
-            playerRb.velocity = Checkpoint.Velocity;
-            timeControl.effectRemainingTime = Checkpoint.EffectRemainingTime;
-            playerMovement.groundNormal = Checkpoint.GroundNormal;
-            timeControl.pauseOn = Checkpoint.PauseOn;
-            timeControl.rewindOn = Checkpoint.RewindOn;
+            playerTransform.position = lastCheckpoint.Position;
+            playerRb.velocity = lastCheckpoint.Velocity;
+            timeControl.effectRemainingTime = lastCheckpoint.EffectRemainingTime;
+            playerMovement.groundNormal = lastCheckpoint.GroundNormal;
+            timeControl.pauseOn = lastCheckpoint.PauseOn;
+            timeControl.rewindOn = lastCheckpoint.RewindOn;
         }
         // back alive
         else if (deathFadePhase == 2)

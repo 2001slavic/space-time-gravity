@@ -9,8 +9,10 @@ using Unity.Burst.CompilerServices;
 using Unity.VisualScripting;
 using UnityEditor;
 using UnityEngine;
+using UnityEngine.InputSystem;
 using UnityEngine.UI;
 
+[RequireComponent(typeof(PlayerInput))]
 public class PlayerMovement : MonoBehaviour
 {
     public bool developerMode;
@@ -46,6 +48,9 @@ public class PlayerMovement : MonoBehaviour
     public float stepOffset;
     public float jumpForce;
 
+    [SerializeField]
+    private PlayerInput playerInput;
+
     [HideInInspector]
     public Vector3 rawInput;
     [HideInInspector]
@@ -59,6 +64,9 @@ public class PlayerMovement : MonoBehaviour
     private AudioClip[] jumpClips;
     [SerializeField]
     private AudioClip[] landClips;
+
+    [SerializeField]
+    private SSPause splitscreenPause;
 
     private void HandleDeveloperMovement()
     {
@@ -115,43 +123,6 @@ public class PlayerMovement : MonoBehaviour
         }
 
         return _onGravityPanel;
-    }
-
-    private void Jump()
-    {   
-        if (!isGrounded || isOnGravityPanel || !Input.GetButtonDown("Jump"))
-        {
-            return;
-        }
-        if (!buoyantForce.inWater)
-        {
-            audioSource.clip = jumpClips[UnityEngine.Random.Range((int)0, jumpClips.Length)];
-            audioSource.volume = PlayerPrefs.GetFloat("volume", 0.5f) * 0.1f;
-            audioSource.Play();
-        }
-        rb.AddForce(groundNormal * jumpForce, ForceMode.Impulse);
-    }
-
-    /// <summary>
-    /// Returns different types of input as out parameters.
-    /// </summary>
-    /// <param name="rawInput">Vector3 of input as got from Input.GetAxis()</param>
-    /// <param name="normalizedInput">Normalized rawInput</param>
-    /// <param name="clampedInput">Clamped input so player strafes and moves backwards slower.</param>
-    private void GetInput()
-    {
-        rawInput = new Vector3(Input.GetAxis("Horizontal"), 0, Input.GetAxis("Vertical"));
-        normalizedInput = rawInput.normalized;
-
-        if (rawInput.z < 0 || Input.GetButton("Walk"))
-        {
-            clampedInput = Vector3.ClampMagnitude(rawInput, 0.5f);
-        }
-        else
-        {
-            clampedInput = Vector3.ClampMagnitude(rawInput, 1f);
-            clampedInput.x *= 0.75f;
-        }
     }
 
     private void HandleStepUpStairs(Vector3 direction)
@@ -211,11 +182,11 @@ public class PlayerMovement : MonoBehaviour
 
         Vector3 addedVelocity = Vector3.zero;
 
-        if (Input.GetButton("Jump"))
+        if (playerInput.actions["Jump"].ReadValue<float>() == 1)
         {
             addedVelocity += groundNormal * swimUpScale;
         }
-        else if (Input.GetButton("SwimDown"))
+        else if (playerInput.actions["SwimDown"].ReadValue<float>() == 1)
         {
             addedVelocity += -groundNormal * swimUpScale;
         }
@@ -227,17 +198,61 @@ public class PlayerMovement : MonoBehaviour
 
     void JumpOutOfWater()
     {
-        if (isGrounded || buoyantForce.inWater || !enteredWater || !Input.GetButton("Jump"))
+        if (isGrounded || buoyantForce.inWater || !enteredWater || playerInput.actions["Jump"].ReadValue<float>() == 0)
         {
             return;
         }
         rb.AddForce(0.5f * jumpForce * groundNormal, ForceMode.Impulse);
     }
 
+    private void ClampedInputCheck()
+    {
+        if (rawInput.z < 0 || playerInput.actions["Walk"].ReadValue<float>() == 1)
+        {
+            clampedInput = Vector3.ClampMagnitude(rawInput, 0.5f);
+        }
+        else
+        {
+            clampedInput = Vector3.ClampMagnitude(rawInput, 1f);
+            clampedInput.x *= 0.75f;
+        }
+    }
+
     private void Outro()
     {
         lastGrounded = isGrounded;
         enteredWater = buoyantForce.inWater;
+    }
+
+    private void OnMove(InputValue value)
+    {
+        if (splitscreenPause != null && splitscreenPause.paused)
+        {
+            return;
+        }
+        Vector2 vector2value = value.Get<Vector2>();
+        rawInput = new Vector3(vector2value.x, 0, vector2value.y);
+        normalizedInput = rawInput.normalized;
+
+    }
+
+    private void OnJump()
+    {
+        if (splitscreenPause != null && splitscreenPause.paused)
+        {
+            return;
+        }
+        if (!isGrounded || isOnGravityPanel)
+        {
+            return;
+        }
+        if (!buoyantForce.inWater)
+        {
+            audioSource.clip = jumpClips[UnityEngine.Random.Range((int)0, jumpClips.Length)];
+            audioSource.volume = PlayerPrefs.GetFloat("volume", 0.5f) * 0.1f;
+            audioSource.Play();
+        }
+        rb.AddForce(groundNormal * jumpForce, ForceMode.Impulse);
     }
     void Start()
     {
@@ -268,9 +283,14 @@ public class PlayerMovement : MonoBehaviour
         audioSource = GetComponent<AudioSource>();
         audioSource.volume = PlayerPrefs.GetFloat("volume", 0.5f) * 0.1f;
 
-}
+    }
+    
     void Update()
     {
+        if (splitscreenPause != null && splitscreenPause.paused)
+        {
+            return;
+        }
         if (developerMode)
         {
             HandleDeveloperMovement();
@@ -280,13 +300,11 @@ public class PlayerMovement : MonoBehaviour
         isGrounded = GroundCheck(out RaycastHit groundHit);
         isOnGravityPanel = HandleGravityPanel(groundHit);
 
+        ClampedInputCheck();
+
         PlayLandClip(); // cannot or difficult to separate
 
         JumpOutOfWater();
-
-        Jump();
-
-        GetInput();
 
         HandleWaterVerticalMovement();
 
@@ -294,7 +312,6 @@ public class PlayerMovement : MonoBehaviour
 
         HandleStepUpStairs(transform.TransformDirection(normalizedInput));
         Move(direction, playerSpeed * clampedInput.magnitude);
-
 
         Outro();
     }

@@ -7,6 +7,7 @@ using UnityEngine.UI;
 using UnityEngine.InputSystem;
 using System.Xml;
 using Unity.VisualScripting;
+using UnityEngine.SceneManagement;
 
 public class SplitScreenMenu : MonoBehaviour
 {
@@ -272,7 +273,12 @@ public class SplitScreenMenu : MonoBehaviour
 
         if (player1Confirmed && player2Confirmed)
         {
+            SplitScreenMode.isSelected = true;
+            SplitScreenMode.player1Gamepad = p1Column[0];
+            SplitScreenMode.player2Gamepad = p2Column[0];
             Debug.Log("Start!");
+            SceneManager.LoadScene(MultiplayerSelectedLevel.level);
+            SceneManager.UnloadSceneAsync("MainMenu");
         }
     }
 

@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Collections.Generic;
+using System.Xml.Serialization;
 using UnityEngine;
 
 public class TimeControl : MonoBehaviour
@@ -14,39 +15,38 @@ public class TimeControl : MonoBehaviour
 
     public float effectRemainingTime;
 
-    private bool rewindAxis;
-
     void Start()
     {
         pauseOn = false;
         rewindOn = false;
-        rewindAxis = false;
 
         effectRemainingTime = effectMaxTime;
 
         Application.targetFrameRate = 500;
     }
 
+    private void OnPause()
+    {
+        if (effectRemainingTime <= 0)
+        {
+            return;
+        }
+        pauseOn = !pauseOn;
+        rewindOn = false;
+    }
+
+    private void OnRewind()
+    {
+        if (effectRemainingTime <= 0)
+        {
+            return;
+        }
+        rewindOn = !rewindOn;
+        pauseOn = false;
+    }
+
     void Update()
     {
-        if (Input.GetAxis("RewindTime") == 0)
-        {
-            rewindAxis = false;
-        }
-
-
-        if (Input.GetButtonDown("PauseTime") && effectRemainingTime > 0)
-        {
-            pauseOn = !pauseOn;
-            rewindOn = false;
-        }
-        else if ((Input.GetButtonDown("RewindTime") || (Input.GetAxis("RewindTime") > 0) && !rewindAxis) && effectRemainingTime > 0)
-        {
-            rewindAxis = true;
-            rewindOn = !rewindOn;
-            pauseOn = false;
-        }
-
         if (!pauseOn)
             globalTimeScale = 1;
 

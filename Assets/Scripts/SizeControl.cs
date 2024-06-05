@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.InputSystem;
 
 
 public class SizeControl : MonoBehaviour
@@ -15,6 +16,9 @@ public class SizeControl : MonoBehaviour
     private PlayerMovement playerMovement;
     [SerializeField]
     private Rigidbody playerRb;
+
+    [SerializeField]
+    private SSPause splitscreenPause;
 
     private readonly Dictionary<int, float> scales = new()
     {
@@ -94,9 +98,13 @@ public class SizeControl : MonoBehaviour
         ResetPlayerStats();
     }
 
-    void Update()
+    private void OnSizeChange(InputValue value)
     {
-        if (!Input.GetButtonDown("SizeChange") || playerMovement.isOnGravityPanel)
+        if (splitscreenPause != null && splitscreenPause.paused)
+        {
+            return;
+        }
+        if (playerMovement.isOnGravityPanel)
         {
             return;
         }

@@ -10,17 +10,9 @@ public class PlayerButtonPress : MonoBehaviour
     private float handLength;
     [SerializeField]
     private LayerMask ignoredLayers;
-    void Start()
-    {
-        
-    }
 
-    void Update()
+    private void OnUse()
     {
-        if (!Input.GetButtonDown("Use"))
-        {
-            return;
-        }
         RaycastHit[] handHit = Physics.RaycastAll(playerCamera.transform.position, playerCamera.transform.forward, handLength, ~ignoredLayers);
         float minDistance = Mathf.Infinity;
         int minIndex = -1;
