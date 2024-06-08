@@ -5,8 +5,7 @@ using UnityEngine;
 public class Gravity : MonoBehaviour
 {
     private Rigidbody rb;
-    [SerializeField]
-    private Vector3 groundNormal;
+    public Vector3 groundNormal;
     public float scale;
     [SerializeField]
     private PlayerMovement playerMovement;

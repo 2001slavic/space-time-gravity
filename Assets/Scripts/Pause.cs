@@ -4,6 +4,7 @@ using System.Linq;
 using TMPro;
 using UnityEngine;
 using UnityEngine.EventSystems;
+using UnityEngine.InputSystem;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
@@ -33,6 +34,12 @@ public class Pause : MonoBehaviour
 
     public AudioSource[] audioSources;
 
+    private string SensitivityFloatToString(float value)
+    {
+        string res = Mathf.FloorToInt(value).ToString();
+        return res.Substring(0, Mathf.Min(res.Length, 4));
+    }
+
     public void ResumeClick()
     {
         gamePaused = false;
@@ -49,7 +56,8 @@ public class Pause : MonoBehaviour
         mainMenu.SetActive(false);
         quitMenu.SetActive(false);
         settingsMenu.SetActive(true);
-        sensitivityInputField.text = GetMouseSensitivity().ToString();
+        sensitivityInputField.text = SensitivityFloatToString(GetMouseSensitivity());
+        Debug.Log(sensitivityInputField.text);
         eventSystem.SetSelectedGameObject(selectedInSettings);
     }
 
@@ -82,20 +90,18 @@ public class Pause : MonoBehaviour
 
     public float GetMouseSensitivity()
     {
-        return PlayerPrefs.GetFloat("sensitivity", 500);
+        return PlayerPrefs.GetFloat("sensitivity0", 500);
     }
 
     public void SetMouseSensitivity(float value)
     {
-        PlayerPrefs.SetFloat("sensitivity", value);
-        string valueString = Mathf.FloorToInt(value).ToString();
-        valueString = valueString.Substring(0, Mathf.Min(valueString.Length, 4));
-        sensitivityInputField.text = valueString;
+        PlayerPrefs.SetFloat("sensitivity0", value);
+        sensitivityInputField.text = SensitivityFloatToString(value);
     }
     public void SetMouseSensitivity(string value)
     {
         float floatValue = float.Parse(value);
-        PlayerPrefs.SetFloat("sensitivity", floatValue);
+        PlayerPrefs.SetFloat("sensitivity0", floatValue);
         sensitivitySlider.value = floatValue;
     }
 

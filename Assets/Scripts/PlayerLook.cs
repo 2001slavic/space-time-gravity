@@ -15,6 +15,9 @@ public class PlayerLook : MonoBehaviour
     [HideInInspector]
     public float y;
 
+    [SerializeField]
+    private PlayerInput playerInput;
+
     void Start()
     {
         Cursor.lockState = CursorLockMode.Locked;
@@ -42,7 +45,7 @@ public class PlayerLook : MonoBehaviour
         //transform.localRotation = Quaternion.Euler(xRotation, 0, 0);
         //playerBody.Rotate(Vector3.up * mouseX);
 
-        float sensitivity = PlayerPrefs.GetFloat("sensitivity", 500);
+        float sensitivity = PlayerPrefs.GetFloat("sensitivity" + playerInput.playerIndex, 500);
 
         xRotation -= y * sensitivity * Time.deltaTime;
         xRotation = Mathf.Clamp(xRotation, -90, 90);

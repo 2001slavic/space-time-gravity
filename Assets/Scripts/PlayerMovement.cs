@@ -287,10 +287,6 @@ public class PlayerMovement : MonoBehaviour
     
     void Update()
     {
-        if (splitscreenPause != null && splitscreenPause.paused)
-        {
-            return;
-        }
         if (developerMode)
         {
             HandleDeveloperMovement();
@@ -298,6 +294,12 @@ public class PlayerMovement : MonoBehaviour
         }
 
         isGrounded = GroundCheck(out RaycastHit groundHit);
+
+        if (splitscreenPause != null && splitscreenPause.paused)
+        {
+            return;
+        }
+
         isOnGravityPanel = HandleGravityPanel(groundHit);
 
         ClampedInputCheck();

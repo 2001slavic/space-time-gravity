@@ -289,7 +289,7 @@ public class MainMenu : MonoBehaviour
 
     public void SetMouseSensitivity(float value)
     {
-        PlayerPrefs.SetFloat("sensitivity", value);
+        PlayerPrefs.SetFloat("sensitivity0", value);
     }
 
     public void SetVolume(float value)

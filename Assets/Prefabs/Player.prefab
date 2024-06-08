@@ -267,6 +267,9 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   playerBody: {fileID: 7483669466010810869}
+  x: 0
+  y: 0
+  playerInput: {fileID: 8222995402058623016}
 --- !u!1 &757003172236677998
 GameObject:
   m_ObjectHideFlags: 0
@@ -1339,6 +1342,7 @@ MonoBehaviour:
   - {fileID: 8300000, guid: 0663bec4e1fa4634db3382805200bb83, type: 3}
   - {fileID: 8300000, guid: bbb72b15b816e7344bdc1d15bfbe5640, type: 3}
   - {fileID: 8300000, guid: b954b81ada5fc8141910adbe72a70d72, type: 3}
+  splitscreenPause: {fileID: 0}
 --- !u!114 &5743789970317564213
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1376,6 +1380,7 @@ MonoBehaviour:
     m_Bits: 1552
   playerMovement: {fileID: 6745953687786499630}
   playerRb: {fileID: 4079308182600186568}
+  splitscreenPause: {fileID: 0}
 --- !u!114 &6301977757731278272
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1427,6 +1432,7 @@ MonoBehaviour:
   timeControl: {fileID: 5743789970317564213}
   playerMovement: {fileID: 6745953687786499630}
   lastCheckpoint: {fileID: 0}
+  splitscreenPause: {fileID: 0}
 --- !u!114 &8107417219445859015
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1439,6 +1445,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ac3dee338454ffd4dac212ced533aa28, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  splitscreenPause: {fileID: 0}
 --- !u!114 &3284866936507742543
 MonoBehaviour:
   m_ObjectHideFlags: 0

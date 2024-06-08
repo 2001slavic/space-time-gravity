@@ -8,7 +8,7 @@ public class InitialSensitivity : MonoBehaviour
     void Start()
     {
         Slider slider = GetComponent<Slider>();
-        slider.value = PlayerPrefs.GetFloat("sensitivity", 500f);
+        slider.value = PlayerPrefs.GetFloat("sensitivity0", 500);
     }
 
     void Update()
