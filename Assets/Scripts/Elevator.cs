@@ -28,12 +28,12 @@ public class Elevator : MonoBehaviour
         {
             moveRight = true;
         }
-            
+
         if (Input.GetKey(KeyCode.Q))
         {
             moveLeft = true;
         }
-            
+
 
         if (moveLeft)
         {
@@ -48,8 +48,5 @@ public class Elevator : MonoBehaviour
             currentTargetPosition = originalPosition;
         }
         transform.localPosition = Vector3.MoveTowards(transform.localPosition, currentTargetPosition, speed * Time.deltaTime);
-
-        moveRight = false;
-        moveLeft = false;
     }
 }

@@ -7,6 +7,7 @@ public class Checkpoint : MonoBehaviour
     private Quaternion rotation;
     private Vector3 position;
     private Vector3 velocity;
+    private int size;
     private float effectRemainingTime;
     private Vector3 groundNormal;
     private bool pauseOn;
@@ -19,4 +20,5 @@ public class Checkpoint : MonoBehaviour
     public Vector3 GroundNormal { get => groundNormal; set => groundNormal = value; }
     public bool PauseOn { get => pauseOn; set => pauseOn = value; }
     public bool RewindOn { get => rewindOn; set => rewindOn = value; }
+    public int Size { get => size; set => size = value; }
 }

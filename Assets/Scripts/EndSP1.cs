@@ -12,7 +12,6 @@ public class EndSP1 : MonoBehaviour
         {
             SceneManager.LoadScene("MainMenu");
             Cursor.lockState = CursorLockMode.Confined;
-            SceneManager.UnloadSceneAsync("SP1");
         }
     }
     void Start()

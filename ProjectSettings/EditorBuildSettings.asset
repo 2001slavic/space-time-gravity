@@ -17,5 +17,11 @@ EditorBuildSettings:
   - enabled: 1
     path: Assets/Scenes/TestMP.unity
     guid: ce92f6bd8155dc94daf5be491b1b0b28
+  - enabled: 1
+    path: Assets/Scenes/MP1.unity
+    guid: 128b17c6d53f7024a84c6709c1eb4e4e
+  - enabled: 1
+    path: Assets/Scenes/MP1Network.unity
+    guid: c276cf8425c4cd34d8fce788e7c18346
   m_configObjects:
     com.unity.input.settings: {fileID: 11400000, guid: 05ddbd77414f9994d8030e813a70876a, type: 2}

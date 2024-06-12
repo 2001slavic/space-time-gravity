@@ -18,9 +18,7 @@ public class CheckpointTrigger : MonoBehaviour
         Quaternion rotation = transform.rotation;
         Vector3 velocity = gameObject.GetComponent<Rigidbody>().velocity;
         TimeControl timeControl = gameObject.GetComponent<TimeControl>();
-        float effectRemainingTime = timeControl.effectRemainingTime;
-        bool pauseOn = timeControl.pauseOn;
-        bool rewindOn = timeControl.rewindOn;
+        SizeControl sizeControl = gameObject.GetComponent<SizeControl>();
         Vector3 groundNormal = gameObject.GetComponent<PlayerMovement>().groundNormal;
 
         Checkpoint playerCheckpoint = other.gameObject.GetComponent<PlayerDeath>().lastCheckpoint;
@@ -28,9 +26,13 @@ public class CheckpointTrigger : MonoBehaviour
         playerCheckpoint.Position = position;
         playerCheckpoint.Rotation = rotation;
         playerCheckpoint.Velocity = velocity;
-        playerCheckpoint.EffectRemainingTime = effectRemainingTime;
-        playerCheckpoint.PauseOn = pauseOn;
-        playerCheckpoint.RewindOn = rewindOn;
+        playerCheckpoint.Size = sizeControl.size;
         playerCheckpoint.GroundNormal = groundNormal;
+        if (timeControl != null)
+        {
+            playerCheckpoint.EffectRemainingTime = timeControl.effectRemainingTime;
+            playerCheckpoint.PauseOn = timeControl.pauseOn;
+            playerCheckpoint.RewindOn = timeControl.rewindOn;
+        }
     }
 }

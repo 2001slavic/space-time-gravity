@@ -43,7 +43,6 @@ public class PlayerMovement : MonoBehaviour
     public bool isGrounded;
     public bool lastGrounded;
     public bool isOnGravityPanel;
-    [HideInInspector]
     public Vector3 groundNormal;
     public float stepOffset;
     public float jumpForce;
@@ -114,7 +113,7 @@ public class PlayerMovement : MonoBehaviour
             lastOnGravityPanel = true;
         }
 
-        // set transform.up to normal of first touched ground if player fell of gravity panel
+        // set transform.up to normal of first touched ground if player fell off gravity panel
         if (isGrounded && !_onGravityPanel && lastOnGravityPanel)
         {
             groundNormal = groundHit.normal;

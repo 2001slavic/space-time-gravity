@@ -21,6 +21,8 @@ public class PlayerDeath : MonoBehaviour
     private TimeControl timeControl;
     [SerializeField]
     private PlayerMovement playerMovement;
+    [SerializeField]
+    private SizeControl sizeControl;
 
     [HideInInspector]
     public Checkpoint lastCheckpoint;
@@ -72,10 +74,16 @@ public class PlayerDeath : MonoBehaviour
 
             playerTransform.position = lastCheckpoint.Position;
             playerRb.velocity = lastCheckpoint.Velocity;
-            timeControl.effectRemainingTime = lastCheckpoint.EffectRemainingTime;
             playerMovement.groundNormal = lastCheckpoint.GroundNormal;
-            timeControl.pauseOn = lastCheckpoint.PauseOn;
-            timeControl.rewindOn = lastCheckpoint.RewindOn;
+            sizeControl.size = lastCheckpoint.Size;
+            sizeControl.ResetPlayerStats();
+            if (timeControl != null)
+            {
+                timeControl.effectRemainingTime = lastCheckpoint.EffectRemainingTime;
+                timeControl.pauseOn = lastCheckpoint.PauseOn;
+                timeControl.rewindOn = lastCheckpoint.RewindOn;
+            }
+            
         }
         // back alive
         else if (deathFadePhase == 2)

@@ -6,8 +6,8 @@ using UnityEngine.UI;
 
 public class CharacterSizeIndicatorNetwork : NetworkBehaviour
 {
-    public PlayerMovementNetwork playerMovement;
-
+    [SerializeField]
+    private SizeControlNetwork sizeControl;
     public Color activeColor;
     public Color inactiveColor;
 
@@ -32,7 +32,7 @@ public class CharacterSizeIndicatorNetwork : NetworkBehaviour
             return;
         }
 
-        switch (playerMovement.curSize)
+        switch (sizeControl.size)
         {
             case 0:
                 smallImage.color = activeColor;

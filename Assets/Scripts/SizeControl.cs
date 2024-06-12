@@ -113,7 +113,18 @@ public class SizeControl : MonoBehaviour
             size = GetIntendedSize();
         // if collision prevents scaling up, change to inferior size
         else if (size > 0)
-            size -= 1;
+            size--;
         ResetPlayerStats();
+    }
+
+    public bool ChangeToLower()
+    {
+        if (size <= 0)
+        {
+            return false;
+        }
+        size--;
+        ResetPlayerStats();
+        return true;
     }
 }

@@ -226,13 +226,13 @@ public class MainMenu : MonoBehaviour
     public void HostClick()
     {
         networkManagerQuery = HOST;
-        LoadScene("TestMP");
+        LoadScene(MultiplayerSelectedLevel.level + "Network");
     }
 
     public void ClientClick()
     {
         networkManagerQuery = CLIENT;
-        LoadScene("TestMP");
+        LoadScene(MultiplayerSelectedLevel.level + "Network");
     }
 
     public void SetIP(string text)
