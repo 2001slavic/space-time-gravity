@@ -37,12 +37,4 @@ public class ElevatorDeath : MonoBehaviour
         }
         AudioSource.PlayClipAtPoint(deathClip, gameObject.transform.position, PlayerPrefs.GetFloat("volume", 0.5f));
     }
-
-    private void OnTriggerExit(Collider other)
-    {
-        if (!other.CompareTag("Player"))
-        {
-            return;
-        }
-    }
 }

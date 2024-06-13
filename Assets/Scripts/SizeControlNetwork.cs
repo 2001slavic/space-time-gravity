@@ -19,7 +19,7 @@ public class SizeControlNetwork : NetworkBehaviour
     private Rigidbody playerRb;
 
     [SerializeField]
-    private SSPause splitscreenPause;
+    private PauseNetwork pauseNetwork;
 
     private readonly Dictionary<int, float> scales = new()
     {
@@ -78,21 +78,6 @@ public class SizeControlNetwork : NetworkBehaviour
         return false;
     }
 
-    //private void OnDrawGizmos()
-    //{
-    //    int intendedSize = GetIntendedSize();
-    //    float radius = playerCollider.radius * scales[intendedSize];
-    //    // used to raise the intended collider slightly upper in order to prevent colliding with ground
-    //    Vector3 offset = playerTransform.up * (playerCollider.radius + 0.2f);
-    //    //offset = Vector3.zero;
-    //    Vector3 upperSphere = transform.TransformPoint(playerCollider.center) + offset + playerTransform.up * (playerCollider.height * scales[intendedSize] / 2 - playerCollider.radius * scales[intendedSize]);
-    //    Vector3 lowerSphere = transform.TransformPoint(playerCollider.center) + offset - playerTransform.up * (playerCollider.height * scales[size] / 2 - playerCollider.radius * scales[size]);
-
-    //    Gizmos.color = Color.yellow;
-    //    Gizmos.DrawSphere(upperSphere, radius);
-    //    Gizmos.DrawSphere(lowerSphere, radius);
-    //}
-
     void Start()
     {
         if (!IsOwner)
@@ -109,7 +94,7 @@ public class SizeControlNetwork : NetworkBehaviour
         {
             return;
         }
-        if (splitscreenPause != null && splitscreenPause.paused)
+        if (pauseNetwork.gamePaused)
         {
             return;
         }

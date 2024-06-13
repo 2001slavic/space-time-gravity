@@ -29,7 +29,7 @@ public class PlayerDeathNetwork : NetworkBehaviour
     public Checkpoint lastCheckpoint;
 
     [SerializeField]
-    private SSPause splitscreenPause;
+    private PauseNetwork pauseNetwork;
 
     void Start()
     {
@@ -47,7 +47,7 @@ public class PlayerDeathNetwork : NetworkBehaviour
         {
             return;
         }
-        if (splitscreenPause != null && splitscreenPause.paused)
+        if (pauseNetwork.gamePaused)
         {
             deathCanvas.gameObject.SetActive(false);
         }

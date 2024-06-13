@@ -5,7 +5,6 @@ using UnityEngine;
 
 public class ServerScript : NetworkBehaviour
 {
-    // Start is called before the first frame update
     void Start()
     {
         if (!IsServer)
@@ -14,7 +13,6 @@ public class ServerScript : NetworkBehaviour
         NetworkManager.Singleton.OnClientConnectedCallback += NetworkManager_OnClientConnectedCallback;
     }
 
-    // Update is called once per frame
     void Update()
     {
         

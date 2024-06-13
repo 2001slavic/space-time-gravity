@@ -1,8 +1,11 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Runtime.InteropServices.WindowsRuntime;
 using Unity.Netcode;
 using UnityEngine;
 using UnityEngine.EventSystems;
+using UnityEngine.InputSystem;
 using UnityEngine.SceneManagement;
 
 public class PauseNetwork : NetworkBehaviour
@@ -24,10 +27,12 @@ public class PauseNetwork : NetworkBehaviour
     public GameObject selectedInQuit;
     public GameObject selectedInHostWait;
 
-    public MouseLookNetwork mouseLook;
-    public JoystickLookNetwork joystickLook;
+    [SerializeField]
+    private PlayerLookNetwork playerLook;
 
     public bool waitForSecondPlayer;
+
+    private SpawnPositions spawnPositions;
 
     public void ShowHostWaitScreen()
     {
@@ -52,8 +57,8 @@ public class PauseNetwork : NetworkBehaviour
         hostWaitMenu.gameObject.SetActive(false);
         playerCamera.gameObject.SetActive(true);
         Cursor.lockState = CursorLockMode.Locked;
-        mouseLook.mouseSensitivity = GetMouseSensitivity();
-        joystickLook.joyLookSensitivity = GetJoystickLookSensitivity();
+        playerLook.x = 0;
+        playerLook.y = 0;
     }
 
     public void SettingsClick()
@@ -92,7 +97,6 @@ public class PauseNetwork : NetworkBehaviour
         NetworkManager.Singleton.Shutdown();
         Destroy(NetworkManager.Singleton.gameObject);
         SceneManager.LoadScene("MainMenu");
-        SceneManager.UnloadSceneAsync("TestMP");
     }
 
     public void ToDesktopClick()
@@ -105,24 +109,13 @@ public class PauseNetwork : NetworkBehaviour
 
     public float GetMouseSensitivity()
     {
-        return PlayerPrefs.GetFloat("sensitivity", 500);
+        return PlayerPrefs.GetFloat("sensitivity0", 500);
     }
 
     public void SetMouseSensitivity(float value)
     {
         if (!IsOwner) return;
-        PlayerPrefs.SetFloat("sensitivity", value);
-    }
-
-    public float GetJoystickLookSensitivity()
-    {
-        return PlayerPrefs.GetFloat("jsensitivity", 500);
-    }
-
-    public void SetJoystickSensitivity(float value)
-    {
-        if (!IsOwner) return;
-        PlayerPrefs.SetFloat("jsensitivity", value);
+        PlayerPrefs.SetFloat("sensitivity0", value);
     }
 
     public void SetVolume(float value)
@@ -138,7 +131,6 @@ public class PauseNetwork : NetworkBehaviour
         SceneManager.LoadScene("MainMenu");
         NetworkManager.Singleton.Shutdown();
         Destroy(NetworkManager.Singleton.gameObject);
-        SceneManager.UnloadSceneAsync("TestMP");
     }
 
     private void NetworkManager_OnClientConnectedCallback(ulong clientid)
@@ -149,27 +141,33 @@ public class PauseNetwork : NetworkBehaviour
         {
             waitForSecondPlayer = false;
         }
+
+        //if (!IsOwner) return;
+        Transform playerTransform = gameObject.transform.parent.GetComponentInParent<Transform>();
+        playerTransform.position = spawnPositions.GetPosition(NetworkManager.Singleton.LocalClientId);
+        playerTransform.rotation = spawnPositions.GetRotation(NetworkManager.Singleton.LocalClientId);
     }
 
-
-    void Start()
+    private void Awake()
     {
-        if (!IsOwner) return;
-        waitForSecondPlayer = true;
+        spawnPositions = GameObject.Find("MainGame").GetComponent<SpawnPositions>();
         NetworkManager.Singleton.OnClientDisconnectCallback += NetworkManager_OnClientDisconnectCallback;
         NetworkManager.Singleton.OnClientConnectedCallback += NetworkManager_OnClientConnectedCallback;
+    }
+
+    private void Start()
+    {
+        if (!IsOwner) return;
+
+        waitForSecondPlayer = true;
         gamePaused = true;
         pauseCanvas.gameObject.SetActive(false);
         pauseCamera.gameObject.SetActive(false);
         hostWaitMenu.gameObject.SetActive(false);
         playerCamera.gameObject.SetActive(true);
         Cursor.lockState = CursorLockMode.Locked;
-        mouseLook.mouseSensitivity = GetMouseSensitivity();
-        joystickLook.joyLookSensitivity = GetJoystickLookSensitivity();
         ShowHostWaitScreen();
     }
-
-    
 
     void Update()
     {
@@ -194,8 +192,6 @@ public class PauseNetwork : NetworkBehaviour
             hostWaitMenu.SetActive(false);
             playerCamera.gameObject.SetActive(true);
             Cursor.lockState = CursorLockMode.Locked;
-            mouseLook.mouseSensitivity = GetMouseSensitivity();
-            joystickLook.joyLookSensitivity = GetJoystickLookSensitivity();
             return;
         }
 
@@ -220,8 +216,6 @@ public class PauseNetwork : NetworkBehaviour
                 pauseCamera.gameObject.SetActive(false);
                 playerCamera.gameObject.SetActive(true);
                 Cursor.lockState = CursorLockMode.Locked;
-                mouseLook.mouseSensitivity = GetMouseSensitivity();
-                joystickLook.joyLookSensitivity = GetJoystickLookSensitivity();
             }
         }
         else if (Input.GetButtonDown("Cancel") && !mainMenu.activeSelf)

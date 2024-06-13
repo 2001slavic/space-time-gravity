@@ -66,7 +66,7 @@ public class PlayerMovementNetwork : NetworkBehaviour
     private AudioClip[] landClips;
 
     [SerializeField]
-    private SSPause splitscreenPause;
+    private PauseNetwork pauseNetwork;
 
     private void HandleDeveloperMovement()
     {
@@ -230,7 +230,7 @@ public class PlayerMovementNetwork : NetworkBehaviour
         {
             return;
         }
-        if (splitscreenPause != null && splitscreenPause.paused)
+        if (pauseNetwork.gamePaused)
         {
             return;
         }
@@ -246,7 +246,7 @@ public class PlayerMovementNetwork : NetworkBehaviour
         {
             return;
         }
-        if (splitscreenPause != null && splitscreenPause.paused)
+        if (pauseNetwork.gamePaused)
         {
             return;
         }
@@ -311,7 +311,7 @@ public class PlayerMovementNetwork : NetworkBehaviour
 
         isGrounded = GroundCheck(out RaycastHit groundHit);
 
-        if (splitscreenPause != null && splitscreenPause.paused)
+        if (pauseNetwork.gamePaused)
         {
             return;
         }
