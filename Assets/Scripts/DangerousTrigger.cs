@@ -6,6 +6,8 @@ public class DangerousTrigger : MonoBehaviour
 {
     [SerializeField]
     private AudioClip deathClip;
+    [SerializeField]
+    private bool ignoreTimeControl;
     private void OnTriggerEnter(Collider other)
     {
         if (!other.CompareTag("Player"))
@@ -18,7 +20,7 @@ public class DangerousTrigger : MonoBehaviour
         PlayerDeath playerDeath = gameObject.GetComponent<PlayerDeath>();
 
 
-        if (timeControl != null && (timeControl.pauseOn || timeControl.rewindOn))
+        if (timeControl != null && !ignoreTimeControl && (timeControl.pauseOn || timeControl.rewindOn))
         {
             return;
         }

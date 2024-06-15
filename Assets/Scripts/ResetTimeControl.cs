@@ -7,19 +7,46 @@ public class ResetTimeControl : MonoBehaviour
 
     public TimeControl timeControl;
 
+    [SerializeField]
+    private ShakingPlatform shakingPlatform;
+
     private void OnTriggerStay(Collider other)
     {
-        if (other.CompareTag("Player"))
+        if (!other.CompareTag("Player"))
         {
-            timeControl.effectRemainingTime = timeControl.effectMaxTime;
+            return;
         }
+
+        // check if shakingPlatform is falling or fell
+        if (shakingPlatform != null)
+        {
+            Debug.Log(shakingPlatform.currentState);
+            if (shakingPlatform.currentState >= 3)
+            {
+                timeControl.effectRemainingTime = timeControl.effectMaxTime;
+            }
+            return;
+        }
+        timeControl.effectRemainingTime = timeControl.effectMaxTime;
     }
     private void OnTriggerEnter(Collider other)
     {
-        if (other.CompareTag("Player"))
+        if (!other.CompareTag("Player"))
         {
-            timeControl.pauseOn = false;
-            timeControl.rewindOn = false;
+            return;
         }
+
+        // check if shakingPlatform is falling or fell
+        if (shakingPlatform != null)
+        {
+            if (shakingPlatform.currentState >= 3)
+            {
+                timeControl.pauseOn = false;
+                timeControl.rewindOn = false;
+            }
+            return;
+        }
+        timeControl.pauseOn = false;
+        timeControl.rewindOn = false;
     }
 }

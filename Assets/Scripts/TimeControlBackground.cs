@@ -10,9 +10,12 @@ public class TimeControlBackground : MonoBehaviour
     public Color pauseColor;
     public Color rewindColor;
 
-    private Image image;
-    void Start()
+    public Image image;
+
+    public bool controlOverride;
+    void Awake()
     {
+        controlOverride = false;
         image = GetComponent<Image>();
     }
 
@@ -26,7 +29,7 @@ public class TimeControlBackground : MonoBehaviour
         {
             image.color = rewindColor;
         }
-        else
+        else if (!controlOverride)
         {
             image.color = neutralColor;
         }

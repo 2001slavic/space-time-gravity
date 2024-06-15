@@ -1,4 +1,3 @@
-using EnumerableDropOutStack;
 using System.Collections;
 using System.Collections.Generic;
 using Unity.VisualScripting;
@@ -10,7 +9,7 @@ public class Rotate : MonoBehaviour
 
     public TimeControl timeControl;
     private int sign;
-    private EnumerableDropOutStack.EnumerableDropOutStack<int> signHistory;
+    private EnumerableDropOutStack<int> signHistory;
     void Start()
     {
         sign = 1;
