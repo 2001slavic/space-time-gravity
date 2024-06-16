@@ -20,7 +20,6 @@ public class ResetTimeControl : MonoBehaviour
         // check if shakingPlatform is falling or fell
         if (shakingPlatform != null)
         {
-            Debug.Log(shakingPlatform.currentState);
             if (shakingPlatform.currentState >= 3)
             {
                 timeControl.effectRemainingTime = timeControl.effectMaxTime;

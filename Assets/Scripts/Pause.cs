@@ -57,7 +57,6 @@ public class Pause : MonoBehaviour
         quitMenu.SetActive(false);
         settingsMenu.SetActive(true);
         sensitivityInputField.text = SensitivityFloatToString(GetMouseSensitivity());
-        Debug.Log(sensitivityInputField.text);
         eventSystem.SetSelectedGameObject(selectedInSettings);
     }
 

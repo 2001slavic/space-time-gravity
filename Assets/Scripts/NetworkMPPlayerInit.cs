@@ -15,13 +15,37 @@ public class NetworkMPPlayerInit : NetworkBehaviour
     [SerializeField]
     private AudioListener audioListener;
     [SerializeField]
-    private SkinnedMeshRenderer playerSkin;
-    [SerializeField]
     private GameObject eventSystem;
+
+    private void PreventDrawingSelf(GameObject gameObject, string layerName)
+    {
+        gameObject.layer = LayerMask.NameToLayer(layerName);
+        foreach (Transform child in gameObject.transform)
+        {
+            child.gameObject.layer = LayerMask.NameToLayer(layerName);
+        }
+        playerCamera.cullingMask &= ~(1 << LayerMask.NameToLayer(layerName));
+    }
+
     void Start()
     {
+        if (!IsLocalPlayer)
+        {
+            if (NetworkManager.Singleton.LocalClientId == 0)
+            {
+                PreventDrawingSelf(gameObject, "Player2");
+            }
+            else
+            {
+                PreventDrawingSelf(gameObject, "Player1");
+            }
+            NetworkObject localPlayer = NetworkManager.Singleton.LocalClient.PlayerObject;
+            PictureInPicture pictureInPicture = localPlayer.GetComponent<PictureInPicture>();
+            pictureInPicture.foreignCamera = playerCamera;
+            pictureInPicture.foreignCamera.rect = new Rect(0.0625f, 0.0625f, 0.25f, 0.25f);
+            return;
+        }
 
-        //NetworkManager.ConnectionApprovalCallback = ConnectionApprovalCallback;
         if (!IsOwner)
         {
             return;
@@ -30,20 +54,15 @@ public class NetworkMPPlayerInit : NetworkBehaviour
         playerInput.enabled = true;
         playerCamera.enabled = true;
         audioListener.enabled = true;
-        playerSkin.enabled = false;
         eventSystem.SetActive(true);
-    }
 
-    private Vector3 GetPlayerSpawnPosition()
-    {
-        return Vector3.zero;
+        if (NetworkManager.Singleton.LocalClientId == 0)
+        {
+            PreventDrawingSelf(gameObject, "Player1");
+        }
+        else
+        {
+            PreventDrawingSelf(gameObject, "Player2");
+        }    
     }
-
-    //private void ConnectionApprovalCallback(NetworkManager.ConnectionApprovalRequest request, NetworkManager.ConnectionApprovalResponse response)
-    //{
-    //    response.Approved = true;
-    //    response.CreatePlayerObject = true;
-    //    response.Position = GetPlayerSpawnPosition();
-    //    Debug.Log(NetworkManager.Singleton.LocalClientId);
-    //}
 }

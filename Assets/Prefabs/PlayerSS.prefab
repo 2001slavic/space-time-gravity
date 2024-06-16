@@ -3245,7 +3245,7 @@ MonoBehaviour:
   playerCamera: {fileID: 7893724457401385839}
   groundCheckIgnore:
     serializedVersion: 2
-    m_Bits: 1552
+    m_Bits: 5648
   playerSpeed: 12
   isGrounded: 0
   lastGrounded: 0
@@ -3345,7 +3345,6 @@ MonoBehaviour:
   timeControl: {fileID: 0}
   playerMovement: {fileID: 6745953687786499630}
   sizeControl: {fileID: 7655859933173933894}
-  lastCheckpoint: {fileID: 0}
   splitscreenPause: {fileID: 85584492949886778}
 --- !u!114 &8107417219445859015
 MonoBehaviour:

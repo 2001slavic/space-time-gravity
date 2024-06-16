@@ -27,6 +27,8 @@ public class MainMenu : MonoBehaviour
     [SerializeField]
     private GameObject settingsMenu;
     [SerializeField]
+    private GameObject controlsMenu;
+    [SerializeField]
     private GameObject singelplayerMenu;
     [SerializeField]
     private GameObject mpLevelSelectMenu;
@@ -64,6 +66,8 @@ public class MainMenu : MonoBehaviour
     private GameObject keyboardNavigation;
     [SerializeField]
     private GameObject xboxNavigation;
+    [SerializeField]
+    private GameObject playstationNavigation;
 
     private const int UNDEFINED = 0;
     private const int HOST = 1;
@@ -73,8 +77,13 @@ public class MainMenu : MonoBehaviour
 
     private float oldVolume;
 
+    [SerializeField]
+    private TMP_InputField sensitivityInputField;
+    [SerializeField]
+    private Slider sensitivitySlider;
 
-    // A public method that can be called from other scripts or UI buttons
+
+    // subscribe to scene loaded event and start loading multiplayer scene
     private void LoadScene(string sceneName)
     {
         // Subscribe to the sceneLoaded event
@@ -84,14 +93,14 @@ public class MainMenu : MonoBehaviour
         SceneManager.LoadScene(sceneName);
     }
 
-    // A private method that will be called when a scene is loaded
+    // set role: whether host or client
     private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
     {
         // Unsubscribe from the sceneLoaded event to avoid memory leaks
         SceneManager.sceneLoaded -= OnSceneLoaded;
 
         NetworkManager.Singleton.GetComponent<UnityTransport>().SetConnectionData(
-            joinTo,  // The IP address is a string
+            joinTo,  // ip address to join to (used as client)
             (ushort)22517, // The port number is an unsigned short
             "0.0.0.0" // The server listen address is a string.
         );
@@ -123,7 +132,6 @@ public class MainMenu : MonoBehaviour
         SceneManager.LoadScene("MainMenu");
         NetworkManager.Singleton.Shutdown();
         Destroy(NetworkManager.Singleton.gameObject);
-        SceneManager.UnloadSceneAsync(oldActiveScene);
     }
 
     private void SetCanvasChildrenInactive()
@@ -141,11 +149,6 @@ public class MainMenu : MonoBehaviour
 
     public void SingePlayerClick()
     {
-        //mainMenu.SetActive(false);
-        //settingsMenu.SetActive(false);
-        //quitMenu.SetActive(false);
-        ////multiPlayerMenu.SetActive(false);
-        //networkMPMenu.SetActive(false);
         SetCanvasChildrenInactive();
         singelplayerMenu.SetActive(true);
         eventSystem.SetSelectedGameObject(selectedInSP);
@@ -153,23 +156,21 @@ public class MainMenu : MonoBehaviour
 
     public void SettingsClick()
     {
-        //mainMenu.SetActive(false);
-        //singelplayerMenu.SetActive(false);
-        //quitMenu.SetActive(false);
-        ////multiPlayerMenu.SetActive(false);
-        //networkMPMenu.SetActive(false);
         SetCanvasChildrenInactive();
         settingsMenu.SetActive(true);
         eventSystem.SetSelectedGameObject(selectedInSettings);
     }
 
+    public void ControlsClick()
+    {
+        SetCanvasChildrenInactive();
+        controlsMenu.SetActive(true);
+
+
+    }
+
     public void QuitMenuClick()
     {
-        //mainMenu.SetActive(false);
-        //settingsMenu.SetActive(false);
-        //singelplayerMenu.SetActive(false);
-        ////multiPlayerMenu.SetActive(false);
-        //networkMPMenu.SetActive(false);
         SetCanvasChildrenInactive();
         quitMenu.SetActive(true);
         eventSystem.SetSelectedGameObject(selectedInQuit);
@@ -204,11 +205,6 @@ public class MainMenu : MonoBehaviour
 
     public void NetworkMPMenuClick()
     {
-        //mainMenu.SetActive(false);
-        //settingsMenu.SetActive(false);
-        //singelplayerMenu.SetActive(false);
-        ////multiPlayerMenu.SetActive(false);
-        //quitMenu.SetActive(false);
         SetCanvasChildrenInactive();
         networkMPMenu.SetActive(true);
         
@@ -219,8 +215,6 @@ public class MainMenu : MonoBehaviour
     {
         SetCanvasChildrenInactive();
         splitScreenMenu.SetActive(true);
-
-        //eventSystem.SetSelectedGameObject(select);
     }
 
     public void HostClick()
@@ -264,11 +258,6 @@ public class MainMenu : MonoBehaviour
 
     public void BackToMainMenuClick()
     {
-        //singelplayerMenu.SetActive(false);
-        //settingsMenu.SetActive(false);
-        //quitMenu.SetActive(false);
-        ////multiPlayerMenu.SetActive(false);
-        //networkMPMenu.SetActive(false);
         SetCanvasChildrenInactive();
         mainMenu.SetActive(true);
         eventSystem.SetSelectedGameObject(selectedInMainMenu);
@@ -277,19 +266,39 @@ public class MainMenu : MonoBehaviour
     public void TestClick()
     {
         SceneManager.LoadScene("SampleScene");
-        SceneManager.UnloadSceneAsync("MainMenu");
     }
 
     public void Level1Click()
     {
         SceneManager.LoadScene("SP1");
-        SceneManager.UnloadSceneAsync("MainMenu");
     }
 
+    public void Level2Click()
+    {
+        SceneManager.LoadScene("SP2");
+    }
+
+    private string SensitivityFloatToString(float value)
+    {
+        string res = Mathf.FloorToInt(value).ToString();
+        return res.Substring(0, Mathf.Min(res.Length, 4));
+    }
+
+    public float GetMouseSensitivity()
+    {
+        return PlayerPrefs.GetFloat("sensitivity0", 500);
+    }
 
     public void SetMouseSensitivity(float value)
     {
         PlayerPrefs.SetFloat("sensitivity0", value);
+        sensitivityInputField.text = SensitivityFloatToString(value);
+    }
+    public void SetMouseSensitivity(string value)
+    {
+        float floatValue = float.Parse(value);
+        PlayerPrefs.SetFloat("sensitivity0", floatValue);
+        sensitivitySlider.value = floatValue;
     }
 
     public void SetVolume(float value)
@@ -312,15 +321,28 @@ public class MainMenu : MonoBehaviour
         // Check if the last input device is a gamepad
         if (Gamepad.current != null && Gamepad.current.wasUpdatedThisFrame)
         {
-            navigationButtons.SetActive(true);
-            keyboardNavigation.SetActive(false);
-            xboxNavigation.SetActive(true);
+            if (Gamepad.current.name.Contains("PlayStation"))
+            {
+                navigationButtons.SetActive(true);
+                xboxNavigation.SetActive(false);
+                keyboardNavigation.SetActive(false);
+                playstationNavigation.SetActive(true);
+            }
+            else
+            {
+                navigationButtons.SetActive(true);
+                keyboardNavigation.SetActive(false);
+                playstationNavigation.SetActive(false);
+                xboxNavigation.SetActive(true);
+            }
+            
         }
         // Check if the last input device is a keyboard
         else if (Keyboard.current != null && Keyboard.current.wasUpdatedThisFrame)
         {
             navigationButtons.SetActive(true);
             xboxNavigation.SetActive(false);
+            playstationNavigation.SetActive(false);
             keyboardNavigation.SetActive(true);
         }
     }
@@ -329,11 +351,6 @@ public class MainMenu : MonoBehaviour
     {
         Cursor.lockState = CursorLockMode.Confined;
         networkManagerQuery = UNDEFINED;
-        //singelplayerMenu.SetActive(false);
-        //settingsMenu.SetActive(false);
-        //quitMenu.SetActive(false);
-        ////multiPlayerMenu.SetActive(false);
-        //networkMPMenu.SetActive(false);
         SetCanvasChildrenInactive();
         mainMenu.SetActive(true);
         joinTo = "127.0.0.1";

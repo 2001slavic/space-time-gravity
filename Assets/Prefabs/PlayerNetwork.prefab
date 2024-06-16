@@ -3001,6 +3001,7 @@ GameObject:
   - component: {fileID: -4998281565771015194}
   - component: {fileID: 7129331616591008812}
   - component: {fileID: -798468314285335254}
+  - component: {fileID: 6513256078997561946}
   - component: {fileID: 8079849102256170451}
   - component: {fileID: 1670023374359729172}
   - component: {fileID: 4773291294502889242}
@@ -3229,7 +3230,7 @@ MonoBehaviour:
   playerCamera: {fileID: 7893724457401385839}
   groundCheckIgnore:
     serializedVersion: 2
-    m_Bits: 1552
+    m_Bits: 5648
   playerSpeed: 12
   isGrounded: 0
   lastGrounded: 0
@@ -3274,7 +3275,7 @@ MonoBehaviour:
   playerTransform: {fileID: 7483669466010810869}
   sizeChangeMask:
     serializedVersion: 2
-    m_Bits: 1552
+    m_Bits: 5648
   playerMovement: {fileID: 4948705176400992165}
   playerRb: {fileID: 4079308182600186568}
   pauseNetwork: {fileID: 4875564501926711040}
@@ -3330,6 +3331,20 @@ MonoBehaviour:
   playerMovement: {fileID: 4948705176400992165}
   sizeControl: {fileID: 1036407930614292472}
   pauseNetwork: {fileID: 4875564501926711040}
+--- !u!114 &6513256078997561946
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4586682408905268296}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ba52fe11c7b6b0e4ea5b93c41541740b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  foreignCamera: {fileID: 0}
+  playerInput: {fileID: 8222995402058623016}
 --- !u!114 &8079849102256170451
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -3476,8 +3491,8 @@ MonoBehaviour:
   playerInput: {fileID: 8222995402058623016}
   playerCamera: {fileID: 7893724457401385839}
   audioListener: {fileID: 548103404949567339}
-  playerSkin: {fileID: 5993380472017207526}
   eventSystem: {fileID: 489000105665568628}
+  playerSkin: {fileID: 5993380472017207526}
 --- !u!114 &4664408399605375076
 MonoBehaviour:
   m_ObjectHideFlags: 0

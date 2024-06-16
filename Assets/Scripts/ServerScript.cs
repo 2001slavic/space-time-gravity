@@ -5,30 +5,19 @@ using UnityEngine;
 
 public class ServerScript : NetworkBehaviour
 {
-    void Start()
+    public Camera GetForeignCamera(ulong localClientId)
     {
-        if (!IsServer)
-            return;
+        //if (!IsServer)
+        //{
+        //    Debug.Log("not a server");
+        //    return null;
+        //}
 
-        NetworkManager.Singleton.OnClientConnectedCallback += NetworkManager_OnClientConnectedCallback;
-    }
-
-    void Update()
-    {
-        
-    }
-
-    private void NetworkManager_OnClientConnectedCallback(ulong obj)
-    {
-        if (!IsServer)
-            return;
-        if (obj == 1)
+        if (localClientId == 0)
         {
-            NetworkManager.Singleton.LocalClient.PlayerObject.GetComponentInChildren<PauseNetwork>().waitForSecondPlayer = false;
+            return GetChildByName.Get(NetworkManager.Singleton.ConnectedClients[1].PlayerObject, "Player Camera").GetComponent<Camera>();
         }
-        else if (obj > 1)
-        {
-            NetworkManager.Singleton.DisconnectClient(obj);
-        }
+
+        return GetChildByName.Get(NetworkManager.Singleton.ConnectedClients[0].PlayerObject, "Player Camera").GetComponent<Camera>();
     }
 }
