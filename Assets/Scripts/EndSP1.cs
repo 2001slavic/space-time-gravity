@@ -10,6 +10,7 @@ public class EndSP1 : MonoBehaviour
     {
         if (other.CompareTag("Player"))
         {
+            PerformanceLogger.gamePaused = true;
             SceneManager.LoadScene("MainMenu");
             Cursor.lockState = CursorLockMode.Confined;
         }

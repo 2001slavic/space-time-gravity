@@ -1,9 +1,10 @@
 using System.Collections;
 using System.Collections.Generic;
+using Unity.Netcode;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
-public class EndLevelMP : MonoBehaviour
+public class EndLevelMP : NetworkBehaviour
 {
     private int playersInTrigger;
 
@@ -13,6 +14,7 @@ public class EndLevelMP : MonoBehaviour
     }
     private void OnTriggerEnter(Collider other)
     {
+
         if (!other.CompareTag("Player"))
         {
             return;
@@ -23,6 +25,7 @@ public class EndLevelMP : MonoBehaviour
 
     private void OnTriggerExit(Collider other)
     {
+
         if (!other.CompareTag("Player"))
         {
             return;
@@ -37,6 +40,10 @@ public class EndLevelMP : MonoBehaviour
         {
             return;
         }
+
+        PerformanceLogger.gamePaused = true;
+        NetworkManager.Singleton.Shutdown();
+        Destroy(NetworkManager.Singleton.gameObject);
 
         SceneManager.LoadScene("MainMenu");
         Cursor.lockState = CursorLockMode.Confined;

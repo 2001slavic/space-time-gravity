@@ -19,6 +19,8 @@ public class Pause : MonoBehaviour
 
     public GameObject mainMenu;
     public GameObject settingsMenu;
+    [SerializeField]
+    private GameObject controlsMenu;
     public GameObject quitMenu;
 
     public GameObject selectedInMain;
@@ -34,6 +36,9 @@ public class Pause : MonoBehaviour
 
     public AudioSource[] audioSources;
 
+    
+    private string lastUsedInputDevice;
+
     private string SensitivityFloatToString(float value)
     {
         string res = Mathf.FloorToInt(value).ToString();
@@ -43,6 +48,7 @@ public class Pause : MonoBehaviour
     public void ResumeClick()
     {
         gamePaused = false;
+        PerformanceLogger.gamePaused = false;
         pauseCanvas.gameObject.SetActive(false);
         pauseCamera.gameObject.SetActive(false);
         mainGameObject.SetActive(true);
@@ -55,15 +61,25 @@ public class Pause : MonoBehaviour
     {
         mainMenu.SetActive(false);
         quitMenu.SetActive(false);
+        controlsMenu.SetActive(false);
         settingsMenu.SetActive(true);
         sensitivityInputField.text = SensitivityFloatToString(GetMouseSensitivity());
         eventSystem.SetSelectedGameObject(selectedInSettings);
+    }
+
+    public void ControlsClick()
+    {
+        mainMenu.SetActive(false);
+        quitMenu.SetActive(false);
+        settingsMenu.SetActive(false);
+        controlsMenu.SetActive(true);
     }
 
     public void QuitMenuClick()
     {
         mainMenu.SetActive(false);
         settingsMenu.SetActive(false);
+        controlsMenu.SetActive(false);
         quitMenu.SetActive(true);
         eventSystem.SetSelectedGameObject(selectedInQuit);
     }
@@ -72,6 +88,7 @@ public class Pause : MonoBehaviour
     {
         settingsMenu.SetActive(false);
         quitMenu.SetActive(false);
+        controlsMenu.SetActive(false);
         mainMenu.SetActive(true);
         eventSystem.SetSelectedGameObject(selectedInMain);
     }
@@ -114,33 +131,93 @@ public class Pause : MonoBehaviour
         foreach (AudioSource audioSource in audioSources)
             audioSource.clip = null;
     }
+
+    private void GetLastUsedInputDevice()
+    {
+        if (Gamepad.current != null && Gamepad.current.wasUpdatedThisFrame)
+        {
+            if (Gamepad.current.name.Contains("PlayStation"))
+            {
+                lastUsedInputDevice = "PlayStation";
+            }
+            else
+            {
+                lastUsedInputDevice = "Xbox";
+            }
+
+        }
+        else if (Keyboard.current != null && Keyboard.current.wasUpdatedThisFrame)
+        {
+            lastUsedInputDevice = "Keyboard";
+        }
+    }
+
+    private void ChangeControlsLayout()
+    {
+        if (!controlsMenu.activeSelf)
+        {
+            return;
+        }
+        GetLastUsedInputDevice();
+
+        foreach (Transform child in controlsMenu.transform)
+        {
+            Button backButton = child.GetComponent<Button>();
+            if (backButton != null)
+            {
+                eventSystem.SetSelectedGameObject(backButton.gameObject);
+                continue;
+            }
+            child.gameObject.SetActive(false);
+        }
+
+        if (lastUsedInputDevice == "PlayStation")
+        {
+            GetChildByName.Get(controlsMenu, "PlayStationControls").SetActive(true);
+        }
+        else if (lastUsedInputDevice == "Xbox")
+        {
+            GetChildByName.Get(controlsMenu, "XboxControls").SetActive(true);
+        }
+        else
+        {
+            GetChildByName.Get(controlsMenu, "KeyboardControls").SetActive(true);
+        }
+    }
+
     void Start()
     {
         gamePaused = false;
+        PerformanceLogger.gamePaused = false;
         pauseCanvas.gameObject.SetActive(false);
         pauseCamera.gameObject.SetActive(false);
         mainGameObject.SetActive(true);
         Cursor.lockState = CursorLockMode.Locked;
+        lastUsedInputDevice = "Keyboard";
     }
     void Update()
     {
+        ChangeControlsLayout();
         if (Input.GetKeyDown(KeyCode.Escape) || Input.GetButtonDown("Start"))
         {
             gamePaused = !gamePaused;
             if (gamePaused)
             {
+                PerformanceLogger.gamePaused = true;
                 ResetAudioClips();
                 mainGameObject.SetActive(false);
                 pauseCanvas.gameObject.SetActive(true);
                 pauseCamera.gameObject.SetActive(true);
                 settingsMenu.SetActive(false);
                 quitMenu.SetActive(false);
+                controlsMenu.SetActive(false);
                 mainMenu.SetActive(true);
                 Cursor.lockState = CursorLockMode.Confined;
                 eventSystem.SetSelectedGameObject(selectedInMain);
             }
             else
             {
+                PerformanceLogger.gamePaused = false;
                 pauseCanvas.gameObject.SetActive(false);
                 pauseCamera.gameObject.SetActive(false);
                 mainGameObject.SetActive(true);
@@ -149,9 +226,17 @@ public class Pause : MonoBehaviour
                 Cursor.lockState = CursorLockMode.Locked;
             }
         }
-        else if (Input.GetButtonDown("Cancel") && !mainMenu.activeSelf)
+
+        else if (Input.GetButtonDown("Cancel"))
         {
-            BackToPauseMenuClick();
+            if (!mainMenu.activeSelf)
+            {
+                BackToPauseMenuClick();
+            }
+            else
+            {
+                ResumeClick();
+            }
         }
     }
 }

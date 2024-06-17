@@ -57,6 +57,13 @@ public class SSPause : MonoBehaviour
         }
     }
 
+    private string GetPairedGamepadType()
+    {
+        if (playerInput.devices[0].name.Contains("PlayStation"))
+            return "PlayStation";
+        return "Xbox";
+    }
+
     private void Resume()
     {
         canvasGameObject.SetActive(false);
@@ -64,6 +71,7 @@ public class SSPause : MonoBehaviour
         playerLook.y = 0;
         playerLook.enabled = true;
         paused = false;
+        PerformanceLogger.gamePaused = false;
         playerInput.defaultActionMap = "Player";
     }
 
@@ -78,6 +86,30 @@ public class SSPause : MonoBehaviour
         GameObject settingsMenu = GetChildByName.Get(canvasGameObject, "SettingsMenu");
         settingsMenu.SetActive(true);
         eventSystem.SetSelectedGameObject(GetChildByName.Get(settingsMenu, "BackButton"));
+    }
+
+    public void ControlsClick()
+    {
+        DisableChildren(canvasGameObject);
+        GameObject controlsMenu = GetChildByName.Get(canvasGameObject, "ControlsMenu");
+        controlsMenu.SetActive(true);
+
+        DisableChildren(controlsMenu);
+
+        GameObject backButton = GetChildByName.Get(controlsMenu, "BackButton");
+        backButton.SetActive(true);
+        eventSystem.SetSelectedGameObject(backButton);
+
+        string layout = GetPairedGamepadType();
+
+        if (layout == "PlayStation")
+        {
+            GetChildByName.Get(controlsMenu, "PlayStationControls").SetActive(true);
+        }
+        else
+        {
+            GetChildByName.Get(controlsMenu, "XboxControls").SetActive(true);
+        }
     }
     private float GetVolume()
     {
@@ -142,6 +174,7 @@ public class SSPause : MonoBehaviour
         }
         else
         {
+            PerformanceLogger.gamePaused = true;
             playerInput.defaultActionMap = "UI";
             playerLook.enabled = false;
             canvasGameObject.SetActive(true);
@@ -175,6 +208,7 @@ public class SSPause : MonoBehaviour
     void Start()
     {
         paused = false;
+        PerformanceLogger.gamePaused = false;
         ApplyPositionOffset(canvasGameObject);
         playerInput.defaultActionMap = "Player";
     }

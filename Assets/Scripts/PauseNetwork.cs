@@ -2,11 +2,13 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Runtime.InteropServices.WindowsRuntime;
+using TMPro;
 using Unity.Netcode;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.InputSystem;
 using UnityEngine.SceneManagement;
+using UnityEngine.UI;
 
 public class PauseNetwork : NetworkBehaviour
 {
@@ -19,6 +21,8 @@ public class PauseNetwork : NetworkBehaviour
 
     public GameObject mainMenu;
     public GameObject settingsMenu;
+    [SerializeField]
+    private GameObject controlsMenu;
     public GameObject quitMenu;
     public GameObject hostWaitMenu;
 
@@ -34,6 +38,13 @@ public class PauseNetwork : NetworkBehaviour
 
     private SpawnPositions spawnPositions;
 
+    private string lastUsedInputDevice;
+
+    [SerializeField]
+    private TMP_InputField sensitivityInputField;
+    [SerializeField]
+    private Slider sensitivitySlider;
+
     public void ShowHostWaitScreen()
     {
         if (!IsOwner) return;
@@ -43,6 +54,7 @@ public class PauseNetwork : NetworkBehaviour
         settingsMenu.SetActive(false);
         quitMenu.SetActive(false);
         mainMenu.SetActive(false);
+        controlsMenu.SetActive(false);
         hostWaitMenu.SetActive(true);
         Cursor.lockState = CursorLockMode.Confined;
         eventSystem.SetSelectedGameObject(selectedInHostWait);
@@ -52,9 +64,11 @@ public class PauseNetwork : NetworkBehaviour
     {
         if (!IsOwner) return;
         gamePaused = false;
+        PerformanceLogger.gamePaused = false;
         pauseCanvas.gameObject.SetActive(false);
         pauseCamera.gameObject.SetActive(false);
         hostWaitMenu.gameObject.SetActive(false);
+        controlsMenu.SetActive(false);
         playerCamera.gameObject.SetActive(true);
         Cursor.lockState = CursorLockMode.Locked;
         playerLook.x = 0;
@@ -66,9 +80,20 @@ public class PauseNetwork : NetworkBehaviour
         if (!IsOwner) return;
         mainMenu.SetActive(false);
         quitMenu.SetActive(false);
+        controlsMenu.SetActive(false);
         hostWaitMenu.gameObject.SetActive(false);
         settingsMenu.SetActive(true);
+        sensitivityInputField.text = SensitivityFloatToString(GetMouseSensitivity());
         eventSystem.SetSelectedGameObject(selectedInSettings);
+    }
+    public void ControlsClick()
+    {
+        if (!IsOwner) return;
+        mainMenu.SetActive(false);
+        quitMenu.SetActive(false);
+        settingsMenu.SetActive(false);
+        hostWaitMenu.gameObject.SetActive(false);
+        controlsMenu.SetActive(true);
     }
 
     public void QuitMenuClick()
@@ -77,6 +102,7 @@ public class PauseNetwork : NetworkBehaviour
         mainMenu.SetActive(false);
         settingsMenu.SetActive(false);
         hostWaitMenu.gameObject.SetActive(false);
+        controlsMenu.SetActive(false);
         quitMenu.SetActive(true);
         eventSystem.SetSelectedGameObject(selectedInQuit);
     }
@@ -87,6 +113,7 @@ public class PauseNetwork : NetworkBehaviour
         settingsMenu.SetActive(false);
         quitMenu.SetActive(false);
         hostWaitMenu.gameObject.SetActive(false);
+        controlsMenu.SetActive(false);
         mainMenu.SetActive(true);
         eventSystem.SetSelectedGameObject(selectedInMain);
     }
@@ -112,10 +139,22 @@ public class PauseNetwork : NetworkBehaviour
         return PlayerPrefs.GetFloat("sensitivity0", 500);
     }
 
+    private string SensitivityFloatToString(float value)
+    {
+        string res = Mathf.FloorToInt(value).ToString();
+        return res.Substring(0, Mathf.Min(res.Length, 4));
+    }
+
     public void SetMouseSensitivity(float value)
     {
-        if (!IsOwner) return;
         PlayerPrefs.SetFloat("sensitivity0", value);
+        sensitivityInputField.text = SensitivityFloatToString(value);
+    }
+    public void SetMouseSensitivity(string value)
+    {
+        float floatValue = float.Parse(value);
+        PlayerPrefs.SetFloat("sensitivity0", floatValue);
+        sensitivitySlider.value = floatValue;
     }
 
     public void SetVolume(float value)
@@ -124,10 +163,64 @@ public class PauseNetwork : NetworkBehaviour
         PlayerPrefs.SetFloat("volume", value);
     }
 
+    private void GetLastUsedInputDevice()
+    {
+        if (Gamepad.current != null && Gamepad.current.wasUpdatedThisFrame)
+        {
+            if (Gamepad.current.name.Contains("PlayStation"))
+            {
+                lastUsedInputDevice = "PlayStation";
+            }
+            else
+            {
+                lastUsedInputDevice = "Xbox";
+            }
+
+        }
+        else if (Keyboard.current != null && Keyboard.current.wasUpdatedThisFrame)
+        {
+            lastUsedInputDevice = "Keyboard";
+        }
+    }
+
+    private void ChangeControlsLayout()
+    {
+        if (!controlsMenu.activeSelf)
+        {
+            return;
+        }
+        GetLastUsedInputDevice();
+
+        foreach (Transform child in controlsMenu.transform)
+        {
+            Button backButton = child.GetComponent<Button>();
+            if (backButton != null)
+            {
+                eventSystem.SetSelectedGameObject(backButton.gameObject);
+                continue;
+            }
+            child.gameObject.SetActive(false);
+        }
+
+        if (lastUsedInputDevice == "PlayStation")
+        {
+            GetChildByName.Get(controlsMenu, "PlayStationControls").SetActive(true);
+        }
+        else if (lastUsedInputDevice == "Xbox")
+        {
+            GetChildByName.Get(controlsMenu, "XboxControls").SetActive(true);
+        }
+        else
+        {
+            GetChildByName.Get(controlsMenu, "KeyboardControls").SetActive(true);
+        }
+    }
+
     private void NetworkManager_OnClientDisconnectCallback(ulong clientid)
     {
         if (!IsOwner) return;
         if (clientid != 1) return;
+        PerformanceLogger.gamePaused = true;
         SceneManager.LoadScene("MainMenu");
         NetworkManager.Singleton.Shutdown();
         Destroy(NetworkManager.Singleton.gameObject);
@@ -161,6 +254,7 @@ public class PauseNetwork : NetworkBehaviour
 
         waitForSecondPlayer = true;
         gamePaused = true;
+        PerformanceLogger.gamePaused = true;
         pauseCanvas.gameObject.SetActive(false);
         pauseCamera.gameObject.SetActive(false);
         hostWaitMenu.gameObject.SetActive(false);
@@ -187,40 +281,54 @@ public class PauseNetwork : NetworkBehaviour
         else if (hostWaitMenu.activeSelf && !waitForSecondPlayer)
         {
             gamePaused = false;
+            PerformanceLogger.gamePaused = false;
             pauseCanvas.gameObject.SetActive(false);
             pauseCamera.gameObject.SetActive(false);
             hostWaitMenu.SetActive(false);
+            controlsMenu.SetActive(false);
             playerCamera.gameObject.SetActive(true);
             Cursor.lockState = CursorLockMode.Locked;
             return;
         }
+
+        ChangeControlsLayout();
 
         if (Input.GetKeyDown(KeyCode.Escape) || Input.GetButtonDown("Start"))
         {
             gamePaused = !gamePaused;
             if (gamePaused)
             {
+                PerformanceLogger.gamePaused = true;
                 playerCamera.gameObject.SetActive(false);
                 pauseCanvas.gameObject.SetActive(true);
                 pauseCamera.gameObject.SetActive(true);
                 hostWaitMenu.SetActive(false);
                 settingsMenu.SetActive(false);
                 quitMenu.SetActive(false);
+                controlsMenu.SetActive(false);
                 mainMenu.SetActive(true);
                 Cursor.lockState = CursorLockMode.Confined;
                 eventSystem.SetSelectedGameObject(selectedInMain);
             }
             else
             {
+                PerformanceLogger.gamePaused = false;
                 pauseCanvas.gameObject.SetActive(false);
                 pauseCamera.gameObject.SetActive(false);
                 playerCamera.gameObject.SetActive(true);
                 Cursor.lockState = CursorLockMode.Locked;
             }
         }
-        else if (Input.GetButtonDown("Cancel") && !mainMenu.activeSelf)
+        else if (Input.GetButtonDown("Cancel"))
         {
-            BackToPauseMenuClick();
+            if (!mainMenu.activeSelf)
+            {
+                BackToPauseMenuClick();
+            }
+            else
+            {
+                ResumeClick();
+            }
         }
     }
 }

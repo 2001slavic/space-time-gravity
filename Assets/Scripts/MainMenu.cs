@@ -82,6 +82,8 @@ public class MainMenu : MonoBehaviour
     [SerializeField]
     private Slider sensitivitySlider;
 
+    private string lastUsedInputDevice;
+
 
     // subscribe to scene loaded event and start loading multiplayer scene
     private void LoadScene(string sceneName)
@@ -127,8 +129,8 @@ public class MainMenu : MonoBehaviour
 
     private void NetworkManager_OnClientDisconnectCallback(ulong clientid)
     {
+        PerformanceLogger.gamePaused = true;
         PlayerPrefs.SetFloat("volume", oldVolume);
-        Scene oldActiveScene = SceneManager.GetActiveScene();
         SceneManager.LoadScene("MainMenu");
         NetworkManager.Singleton.Shutdown();
         Destroy(NetworkManager.Singleton.gameObject);
@@ -158,6 +160,7 @@ public class MainMenu : MonoBehaviour
     {
         SetCanvasChildrenInactive();
         settingsMenu.SetActive(true);
+        sensitivityInputField.text = SensitivityFloatToString(GetMouseSensitivity());
         eventSystem.SetSelectedGameObject(selectedInSettings);
     }
 
@@ -165,8 +168,6 @@ public class MainMenu : MonoBehaviour
     {
         SetCanvasChildrenInactive();
         controlsMenu.SetActive(true);
-
-
     }
 
     public void QuitMenuClick()
@@ -311,40 +312,95 @@ public class MainMenu : MonoBehaviour
         PlayerPrefs.SetFloat("jsensitivity", value);
     }
 
-    private void HandleLastUsedInputDevice()
+    private void GetLastUsedInputDevice()
+    {
+        if (Gamepad.current != null && Gamepad.current.wasUpdatedThisFrame)
+        {
+            if (Gamepad.current.name.Contains("PlayStation"))
+            {
+                lastUsedInputDevice = "PlayStation";
+            }
+            else
+            {
+                lastUsedInputDevice = "Xbox";
+            }
+
+        }
+        else if (Keyboard.current != null && Keyboard.current.wasUpdatedThisFrame)
+        {
+            lastUsedInputDevice = "Keyboard";
+        }
+    }
+
+    private void ChangeNavigationButtons()
     {
         if (splitScreenMenu.activeSelf)
         {
             navigationButtons.SetActive(false);
             return;
         }
-        // Check if the last input device is a gamepad
-        if (Gamepad.current != null && Gamepad.current.wasUpdatedThisFrame)
+
+        GetLastUsedInputDevice();
+
+        if (lastUsedInputDevice == "PlayStation")
         {
-            if (Gamepad.current.name.Contains("PlayStation"))
-            {
-                navigationButtons.SetActive(true);
-                xboxNavigation.SetActive(false);
-                keyboardNavigation.SetActive(false);
-                playstationNavigation.SetActive(true);
-            }
-            else
-            {
-                navigationButtons.SetActive(true);
-                keyboardNavigation.SetActive(false);
-                playstationNavigation.SetActive(false);
-                xboxNavigation.SetActive(true);
-            }
-            
+            navigationButtons.SetActive(true);
+            xboxNavigation.SetActive(false);
+            keyboardNavigation.SetActive(false);
+            playstationNavigation.SetActive(true);
         }
-        // Check if the last input device is a keyboard
-        else if (Keyboard.current != null && Keyboard.current.wasUpdatedThisFrame)
+        else if (lastUsedInputDevice == "Xbox")
+        {
+            navigationButtons.SetActive(true);
+            keyboardNavigation.SetActive(false);
+            playstationNavigation.SetActive(false);
+            xboxNavigation.SetActive(true);
+        }
+        else
         {
             navigationButtons.SetActive(true);
             xboxNavigation.SetActive(false);
             playstationNavigation.SetActive(false);
             keyboardNavigation.SetActive(true);
         }
+    }
+
+    private void ChangeControlsLayout()
+    {
+        if (!controlsMenu.activeSelf)
+        {
+            return;
+        }
+        GetLastUsedInputDevice();
+
+        foreach (Transform child in controlsMenu.transform)
+        {
+            Button backButton = child.GetComponent<Button>();
+            if (backButton != null)
+            {
+                eventSystem.SetSelectedGameObject(backButton.gameObject);
+                continue;
+            }
+            child.gameObject.SetActive(false);
+        }
+
+        if (lastUsedInputDevice == "PlayStation")
+        {
+            GetChildByName.Get(controlsMenu, "PlayStationControls").SetActive(true);
+        }
+        else if (lastUsedInputDevice == "Xbox")
+        {
+            GetChildByName.Get(controlsMenu, "XboxControls").SetActive(true);
+        }
+        else
+        {
+            GetChildByName.Get(controlsMenu, "KeyboardControls").SetActive(true);
+        }
+    }
+
+    private void Awake()
+    {
+        PerformanceLogger.gamePaused = true;
     }
 
     void Start()
@@ -354,12 +410,13 @@ public class MainMenu : MonoBehaviour
         SetCanvasChildrenInactive();
         mainMenu.SetActive(true);
         joinTo = "127.0.0.1";
-        
+        lastUsedInputDevice = "Keyboard";
     }
 
     void Update()
     {
-        HandleLastUsedInputDevice();
+        ChangeNavigationButtons();
+        ChangeControlsLayout();
         if (Input.GetButtonDown("Cancel"))
         {
             if (mainMenu.activeSelf)
