@@ -61,7 +61,7 @@ public class PerformanceLogger : MonoBehaviour
             writer.WriteLine("CPU: " + cpu);
             writer.WriteLine("GPU: " + gpu);
             writer.WriteLine("Total System RAM (MB): " + ram);
-            writer.WriteLine("Registered frame number,FPS,FrameTime (ms)");
+            writer.WriteLine("Registered frame number,Scene name,FPS,FrameTime (ms)");
         }
     }
 
